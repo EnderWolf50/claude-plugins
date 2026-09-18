@@ -41,11 +41,11 @@ click
             └─ UI Automation: select the TabItem whose name contains the session title
 ```
 
-`scripts/register.ps1` (idempotent, runs on `SessionStart`):
+`scripts/register.ps1` (idempotent, runs on `SessionStart`; `notify.ps1` also runs it with `-NoBuild` if the AUMID key is missing when a toast is about to be shown):
 - copies the icon to `$CLAUDE_PLUGIN_DATA` (stable across plugin updates)
-- compiles `scripts/focus-terminal.cs` → `$CLAUDE_PLUGIN_DATA\claude-focus.exe` (only when the source hash changes)
 - `HKCU\Software\Classes\AppUserModelId\ClaudeCode.WinToast` → DisplayName "Claude Code" + IconUri (`.ico`)
 - `HKCU\Software\Classes\claude-focus` → `"<data>\claude-focus.exe" "%1"`
+- compiles `scripts/focus-terminal.cs` → `$CLAUDE_PLUGIN_DATA\claude-focus.exe` (only when the source hash changes; skipped by `-NoBuild`)
 
 ## Files
 
@@ -58,6 +58,7 @@ scripts/register.ps1            icon + exe build + app-id + protocol registratio
 scripts/focus-terminal.cs       protocol handler: focus window + select tab (compiled by register.ps1)
 skills/setup/SKILL.md           /win-toast:setup
 assets/claude-code.ico          toast icon (multi-size .ico; .png kept as the source image)
+tests/first-toast-unregistered.ps1  regression check: a toast sent before SessionStart must still carry the identity
 ```
 
 ## Tweaks
@@ -66,9 +67,12 @@ assets/claude-code.ico          toast icon (multi-size .ico; .png kept as the so
 - Sound: `notify.ps1`, the `<audio src="…">` element (`silent="true"` to mute).
 - Tab matching is by session title (`*title*`). Use `/rename` if two sessions share a title.
 
-## Gotcha: icon cache
+## Gotcha: sender name / icon cache
 
-Windows resolves the AUMID's icon once and caches it for the whole logon session. If you swap `assets/claude-code.ico` (or the icon was missing the first time a toast fired), sign out or reboot before expecting the new icon.
+Windows resolves the AUMID's display name and icon the first time a toast is shown for it and caches the result for the whole logon session. Two consequences:
+
+- If you swap `assets/claude-code.ico` (or the icon was missing the first time a toast fired), sign out or reboot before expecting the new icon.
+- If a toast was ever sent while the `AppUserModelId\ClaudeCode.WinToast` key did not exist, the sender reads `ClaudeCode.WinToast` until you sign out. Since 1.2.1 `notify.ps1` registers the identity just-in-time so this cannot happen on a fresh install; if you saw it with 1.2.0, update and sign out once.
 
 ## Uninstall
 

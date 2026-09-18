@@ -1,7 +1,7 @@
 {
   "name": "win-toast",
   "description": "Windows toast notifications for Claude Code: shows the session title and a preview of the last response when Claude stops or needs your attention; clicking the toast focuses the Windows Terminal window and tab that owns the session.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": {
     "name": "EnderWolf50"
   },

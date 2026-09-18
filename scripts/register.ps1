@@ -1,13 +1,16 @@
 # One-time (idempotent) setup for win-toast. Runs on every SessionStart (async); only writes when
 # something is missing or stale, so the steady-state cost is a few registry reads.
 #   - copies the icon to a stable data dir (the plugin root changes on every update)
-#   - compiles focus-terminal.cs -> claude-focus.exe with the inbox .NET Framework compiler
-#     (a WinExe, so clicking a toast never flashes a console window)
 #   - registers the "Claude Code" AppUserModelId so toasts show the right name/icon
-#     (Windows caches the resolved icon per AUMID for the whole logon session: if you change the
-#      icon, sign out or reboot before expecting to see it)
+#     (Windows resolves the name + icon for an AUMID the first time a toast is shown for it and caches
+#      the result for the whole logon session: a toast sent before this key exists pins the raw AUMID
+#      as the sender name until sign-out; a changed icon is not picked up until sign-out either)
 #   - registers the claude-focus:// protocol -> claude-focus.exe
-param([switch]$Quiet, [switch]$Force)
+#   - compiles focus-terminal.cs -> claude-focus.exe with the inbox .NET Framework compiler
+#     (a WinExe, so clicking a toast never flashes a console window). Last, so that a compile
+#     failure never leaves toasts without an identity. -NoBuild skips it (notify.ps1 uses this
+#     to register the identity just-in-time when SessionStart has not run yet).
+param([switch]$Quiet, [switch]$Force, [switch]$NoBuild)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -32,25 +35,6 @@ if ($Force -or -not (Test-Path $iconDst) -or (Get-Item $iconSrc).Length -ne (Get
     $changed += 'icon'
 }
 
-# protocol handler exe: rebuild when the source changes
-$srcHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.IO.File]::ReadAllBytes($csSrc))) -replace '-', ''
-$oldHash = if (Test-Path $hashFile) { (Get-Content $hashFile -Raw).Trim() } else { '' }
-if ($Force -or -not (Test-Path $exe) -or $srcHash -ne $oldHash) {
-    $fw  = [System.Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
-    $csc = Join-Path $fw 'csc.exe'
-    if (-not (Test-Path $csc)) { throw "win-toast: csc.exe not found in $fw" }
-    # UIAutomation assemblies live in the GAC; ask the runtime where they are
-    $refs = @('UIAutomationClient', 'UIAutomationTypes', 'WindowsBase') | ForEach-Object {
-        '/r:' + [System.Reflection.Assembly]::Load("$_, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35").Location
-    }
-    $tmp = "$exe.tmp"
-    $out = & $csc /nologo /target:winexe /optimize+ /platform:anycpu "/out:$tmp" @refs $csSrc 2>&1
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tmp)) { throw "win-toast: compile failed`n$out" }
-    Move-Item $tmp $exe -Force
-    Set-Content -Path $hashFile -Value $srcHash -NoNewline
-    $changed += 'exe'
-}
-
 # toast sender identity
 $cur = Get-ItemProperty -Path $appKey -ErrorAction SilentlyContinue
 if ($Force -or -not $cur -or $cur.DisplayName -ne 'Claude Code' -or $cur.IconUri -ne $iconDst) {
@@ -72,6 +56,25 @@ if ($Force -or $curCmd -ne $cmd) {
     Set-ItemProperty -Path $proto -Name 'URL Protocol' -Value ''
     Set-ItemProperty -Path "$proto\shell\open\command" -Name '(default)' -Value $cmd
     $changed += 'protocol'
+}
+
+# protocol handler exe: rebuild when the source changes
+$srcHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.IO.File]::ReadAllBytes($csSrc))) -replace '-', ''
+$oldHash = if (Test-Path $hashFile) { (Get-Content $hashFile -Raw).Trim() } else { '' }
+if (-not $NoBuild -and ($Force -or -not (Test-Path $exe) -or $srcHash -ne $oldHash)) {
+    $fw  = [System.Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+    $csc = Join-Path $fw 'csc.exe'
+    if (-not (Test-Path $csc)) { throw "win-toast: csc.exe not found in $fw" }
+    # UIAutomation assemblies live in the GAC; ask the runtime where they are
+    $refs = @('UIAutomationClient', 'UIAutomationTypes', 'WindowsBase') | ForEach-Object {
+        '/r:' + [System.Reflection.Assembly]::Load("$_, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35").Location
+    }
+    $tmp = "$exe.tmp"
+    $out = & $csc /nologo /target:winexe /optimize+ /platform:anycpu "/out:$tmp" @refs $csSrc 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tmp)) { throw "win-toast: compile failed`n$out" }
+    Move-Item $tmp $exe -Force
+    Set-Content -Path $hashFile -Value $srcHash -NoNewline
+    $changed += 'exe'
 }
 
 if (-not $Quiet) {

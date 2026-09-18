@@ -69,6 +69,16 @@ try {
     }
 } catch {}
 
+# Windows resolves the sender name/icon from HKCU\...\AppUserModelId\$appId the first time a toast is shown
+# for the AUMID and caches the result for the logon session. If the key is missing here (plugin installed
+# into a running session: hooks are live but SessionStart, and so register.ps1, has not run), register it now,
+# before Show(): a nameless first toast would pin "ClaudeCode.WinToast" as the sender until sign-out.
+$reg = Get-ItemProperty -Path "HKCU:\Software\Classes\AppUserModelId\$appId" -ErrorAction SilentlyContinue
+$identityOk = $reg -and $reg.DisplayName -and $reg.IconUri -and (Test-Path $reg.IconUri)
+if (-not $identityOk) {
+    try { & (Join-Path $PSScriptRoot 'register.ps1') -Quiet -NoBuild } catch {}
+}
+
 [void][Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
 [void][Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
 
