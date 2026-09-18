@@ -1,0 +1,23 @@
+{
+  "name": "enderwolf50",
+  "owner": {
+    "name": "EnderWolf50"
+  },
+  "metadata": {
+    "description": "EnderWolf50's Claude Code plugins",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "win-toast",
+      "source": "./",
+      "description": "Windows toast notifications with click-to-focus for Windows Terminal",
+      "version": "1.0.0",
+      "author": {
+        "name": "EnderWolf50"
+      },
+      "keywords": ["windows", "notification", "toast", "hooks"],
+      "category": "productivity"
+    }
+  ]
+}
