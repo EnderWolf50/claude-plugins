@@ -74,7 +74,7 @@ try {
 
 $esc = [System.Security.SecurityElement]::Escape
 $attr = if ($project) { "<text placement=`"attribution`">$($esc.Invoke($project))</text>" } else { "" }
-# click -> claude-focus:// -> focus-terminal.ps1 brings this Windows Terminal window + tab to front
+# click -> claude-focus:// -> claude-focus.exe (built from focus-terminal.cs) brings this window + tab to front
 $launch = ""
 try {
     Add-Type -AssemblyName System.Web

@@ -9,7 +9,7 @@ Windows toast notifications for [Claude Code](https://code.claude.com), with cli
 
 Every toast shows the project folder as attribution, is sent as **"Claude Code"** (own icon, not "Windows PowerShell"), and **clicking it brings back the Windows Terminal window and selects the tab** that owns the session.
 
-No dependencies: Windows PowerShell 5.1 + the built-in WinRT toast API. Works on Windows 10/11.
+No dependencies: Windows PowerShell 5.1, the built-in WinRT toast API, and the inbox .NET Framework C# compiler (`csc.exe`, present on every Windows 10/11). Nothing to install, no binaries in the repo.
 
 ## Install
 
@@ -35,16 +35,17 @@ hook (Notification / Stop, async)
 
 click
   └─ claude-focus:// (HKCU protocol handler)
-       └─ scripts/focus-terminal.vbs  (hidden launcher)
-            └─ scripts/focus-terminal.ps1
-                 ├─ SetForegroundWindow(hwnd)  (restores if minimized)
-                 └─ UI Automation: select the TabItem whose name contains the session title
+       └─ claude-focus.exe  (tiny WinExe compiled from scripts/focus-terminal.cs at registration;
+                             no console window, ~200 ms)
+            ├─ SetForegroundWindow(hwnd)  (restores if minimized)
+            └─ UI Automation: select the TabItem whose name contains the session title
 ```
 
 `scripts/register.ps1` (idempotent, runs on `SessionStart`):
 - copies the icon to `$CLAUDE_PLUGIN_DATA` (stable across plugin updates)
+- compiles `scripts/focus-terminal.cs` → `$CLAUDE_PLUGIN_DATA\claude-focus.exe` (only when the source hash changes)
 - `HKCU\Software\Classes\AppUserModelId\Anthropic.ClaudeCode` → DisplayName "Claude Code" + IconUri
-- `HKCU\Software\Classes\claude-focus` → `wscript.exe "<plugin>/scripts/focus-terminal.vbs" "%1"`
+- `HKCU\Software\Classes\claude-focus` → `"<data>\claude-focus.exe" "%1"`
 
 ## Files
 
@@ -53,9 +54,8 @@ click
 .claude-plugin/marketplace.json lets the repo be added as a marketplace
 hooks/hooks.json                SessionStart / Notification / Stop
 scripts/notify.ps1              build + show the toast
-scripts/register.ps1            app-id + protocol registration
-scripts/focus-terminal.vbs      hidden launcher for the protocol handler
-scripts/focus-terminal.ps1      focus window + select tab
+scripts/register.ps1            icon + exe build + app-id + protocol registration
+scripts/focus-terminal.cs       protocol handler: focus window + select tab (compiled by register.ps1)
 skills/setup/SKILL.md           /win-toast:setup
 assets/claude-code.png          toast icon
 ```
@@ -72,8 +72,9 @@ assets/claude-code.png          toast icon
 claude plugin uninstall win-toast@enderwolf50
 ```
 
-Registry keys (optional cleanup):
+Optional cleanup:
 ```
 reg delete HKCU\Software\Classes\AppUserModelId\Anthropic.ClaudeCode /f
 reg delete HKCU\Software\Classes\claude-focus /f
+rmdir /s /q %USERPROFILE%\.claude\win-toast
 ```

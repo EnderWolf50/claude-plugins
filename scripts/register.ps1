@@ -1,8 +1,10 @@
-# One-time (idempotent) setup for win-toast:
-#   - copies the icon to a stable data dir (plugin root changes on every update)
+# One-time (idempotent) setup for win-toast. Runs on every SessionStart (async); only writes when
+# something is missing or stale, so the steady-state cost is a few registry reads.
+#   - copies the icon to a stable data dir (the plugin root changes on every update)
+#   - compiles focus-terminal.cs -> claude-focus.exe with the inbox .NET Framework compiler
+#     (a WinExe, so clicking a toast never flashes a console window)
 #   - registers the "Claude Code" AppUserModelId so toasts show the right name/icon
-#   - registers the claude-focus:// protocol so clicking a toast focuses the terminal
-# Runs on every SessionStart (async, ~200ms); only writes when something is missing or stale.
+#   - registers the claude-focus:// protocol -> claude-focus.exe
 param([switch]$Quiet, [switch]$Force)
 
 $ErrorActionPreference = 'Stop'
@@ -10,21 +12,44 @@ $root = Split-Path -Parent $PSScriptRoot
 $data = if ($env:CLAUDE_PLUGIN_DATA) { $env:CLAUDE_PLUGIN_DATA } else { Join-Path $HOME '.claude\win-toast' }
 if (-not (Test-Path $data)) { New-Item -ItemType Directory -Path $data -Force | Out-Null }
 
-$appId   = 'Anthropic.ClaudeCode'
-$appKey  = "HKCU:\Software\Classes\AppUserModelId\$appId"
-$proto   = 'HKCU:\Software\Classes\claude-focus'
-$iconSrc = Join-Path $root 'assets\claude-code.png'
-$iconDst = Join-Path $data 'claude-code.png'
-$vbs     = Join-Path $root 'scripts\focus-terminal.vbs'
-$cmd     = "wscript.exe `"$vbs`" `"%1`""
+$appId    = 'Anthropic.ClaudeCode'
+$appKey   = "HKCU:\Software\Classes\AppUserModelId\$appId"
+$proto    = 'HKCU:\Software\Classes\claude-focus'
+$iconSrc  = Join-Path $root 'assets\claude-code.png'
+$iconDst  = Join-Path $data 'claude-code.png'
+$csSrc    = Join-Path $root 'scripts\focus-terminal.cs'
+$exe      = Join-Path $data 'claude-focus.exe'
+$hashFile = Join-Path $data 'claude-focus.sha256'
+$cmd      = "`"$exe`" `"%1`""
 
 $changed = @()
 
+# icon
 if ($Force -or -not (Test-Path $iconDst) -or (Get-Item $iconSrc).Length -ne (Get-Item $iconDst).Length) {
     Copy-Item $iconSrc $iconDst -Force
     $changed += 'icon'
 }
 
+# protocol handler exe: rebuild when the source changes
+$srcHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.IO.File]::ReadAllBytes($csSrc))) -replace '-', ''
+$oldHash = if (Test-Path $hashFile) { (Get-Content $hashFile -Raw).Trim() } else { '' }
+if ($Force -or -not (Test-Path $exe) -or $srcHash -ne $oldHash) {
+    $fw  = [System.Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+    $csc = Join-Path $fw 'csc.exe'
+    if (-not (Test-Path $csc)) { throw "win-toast: csc.exe not found in $fw" }
+    # UIAutomation assemblies live in the GAC; ask the runtime where they are
+    $refs = @('UIAutomationClient', 'UIAutomationTypes', 'WindowsBase') | ForEach-Object {
+        '/r:' + [System.Reflection.Assembly]::Load("$_, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35").Location
+    }
+    $tmp = "$exe.tmp"
+    $out = & $csc /nologo /target:winexe /optimize+ /platform:anycpu "/out:$tmp" @refs $csSrc 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tmp)) { throw "win-toast: compile failed`n$out" }
+    Move-Item $tmp $exe -Force
+    Set-Content -Path $hashFile -Value $srcHash -NoNewline
+    $changed += 'exe'
+}
+
+# toast sender identity
 $cur = Get-ItemProperty -Path $appKey -ErrorAction SilentlyContinue
 if ($Force -or -not $cur -or $cur.DisplayName -ne 'Claude Code' -or $cur.IconUri -ne $iconDst) {
     New-Item -Path $appKey -Force | Out-Null
@@ -34,6 +59,7 @@ if ($Force -or -not $cur -or $cur.DisplayName -ne 'Claude Code' -or $cur.IconUri
     $changed += 'app-id'
 }
 
+# claude-focus:// protocol
 $curCmd = (Get-ItemProperty -Path "$proto\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
 if ($Force -or $curCmd -ne $cmd) {
     New-Item -Path "$proto\shell\open\command" -Force | Out-Null
@@ -47,5 +73,6 @@ if (-not $Quiet) {
     if ($changed.Count) { Write-Host "win-toast: registered ($($changed -join ', '))" }
     else { Write-Host "win-toast: already up to date" }
     Write-Host "  icon:     $iconDst"
+    Write-Host "  handler:  $exe"
     Write-Host "  protocol: $cmd"
 }

@@ -19,9 +19,10 @@ Registration normally happens automatically on `SessionStart`. Run this skill wh
    echo '{"cwd":"'"$PWD"'","message":"win-toast is working. Click me to focus the terminal.","title":"Test"}' | powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/scripts/notify.ps1" -Event Notification
    ```
 
-3. Tell the user what was registered (the script prints the icon path and protocol command) and remind them that if a toast never appears, Windows notification settings or Focus Assist may be suppressing "Claude Code".
+3. Tell the user what was registered (the script prints the icon, handler exe, and protocol command) and remind them that if a toast never appears, Windows notification settings or Focus Assist may be suppressing "Claude Code".
 
 Troubleshooting:
 - Toast shows sender "Windows PowerShell": the AppUserModelId registration is missing → rerun step 1.
-- Click does nothing: check `HKCU\Software\Classes\claude-focus\shell\open\command` points at the current plugin's `scripts/focus-terminal.vbs` → rerun step 1 (plugin updates move the path; `SessionStart` normally fixes this).
+- Click does nothing: check `HKCU\Software\Classes\claude-focus\shell\open\command` points at `<data>\claude-focus.exe` and that the exe exists → rerun step 1 (it recompiles from `scripts/focus-terminal.cs`).
+- Step 1 fails with "compile failed": `csc.exe` (inbox .NET Framework 4.x) is missing or the source has a syntax error; show the user the compiler output.
 - Wrong tab selected: tab matching uses the session title; rename the session with `/rename` to disambiguate.
