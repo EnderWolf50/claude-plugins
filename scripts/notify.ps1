@@ -3,7 +3,7 @@
 # The "Claude Code" app identity and claude-focus:// protocol are registered by register.ps1
 param([string]$Event = "Notification")
 
-$appId = 'Anthropic.ClaudeCode'
+$appId = 'ClaudeCode.WinToast'
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 $raw   = [Console]::In.ReadToEnd()
 $title = "Claude Code"
@@ -74,6 +74,7 @@ try {
 
 $esc = [System.Security.SecurityElement]::Escape
 $attr = if ($project) { "<text placement=`"attribution`">$($esc.Invoke($project))</text>" } else { "" }
+
 # click -> claude-focus:// -> claude-focus.exe (built from focus-terminal.cs) brings this window + tab to front
 $launch = ""
 try {

@@ -23,6 +23,7 @@ Registration normally happens automatically on `SessionStart`. Run this skill wh
 
 Troubleshooting:
 - Toast shows sender "Windows PowerShell": the AppUserModelId registration is missing → rerun step 1.
+- Sender is "Claude Code" but there is no icon next to it: Windows caches the icon per AUMID for the logon session; the user needs to sign out / reboot (re-registering does not help until then).
 - Click does nothing: check `HKCU\Software\Classes\claude-focus\shell\open\command` points at `<data>\claude-focus.exe` and that the exe exists → rerun step 1 (it recompiles from `scripts/focus-terminal.cs`).
 - Step 1 fails with "compile failed": `csc.exe` (inbox .NET Framework 4.x) is missing or the source has a syntax error; show the user the compiler output.
 - Wrong tab selected: tab matching uses the session title; rename the session with `/rename` to disambiguate.

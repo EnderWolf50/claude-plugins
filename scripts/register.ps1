@@ -4,6 +4,8 @@
 #   - compiles focus-terminal.cs -> claude-focus.exe with the inbox .NET Framework compiler
 #     (a WinExe, so clicking a toast never flashes a console window)
 #   - registers the "Claude Code" AppUserModelId so toasts show the right name/icon
+#     (Windows caches the resolved icon per AUMID for the whole logon session: if you change the
+#      icon, sign out or reboot before expecting to see it)
 #   - registers the claude-focus:// protocol -> claude-focus.exe
 param([switch]$Quiet, [switch]$Force)
 
@@ -12,11 +14,11 @@ $root = Split-Path -Parent $PSScriptRoot
 $data = if ($env:CLAUDE_PLUGIN_DATA) { $env:CLAUDE_PLUGIN_DATA } else { Join-Path $HOME '.claude\win-toast' }
 if (-not (Test-Path $data)) { New-Item -ItemType Directory -Path $data -Force | Out-Null }
 
-$appId    = 'Anthropic.ClaudeCode'
+$appId    = 'ClaudeCode.WinToast'
 $appKey   = "HKCU:\Software\Classes\AppUserModelId\$appId"
 $proto    = 'HKCU:\Software\Classes\claude-focus'
-$iconSrc  = Join-Path $root 'assets\claude-code.png'
-$iconDst  = Join-Path $data 'claude-code.png'
+$iconSrc  = Join-Path $root 'assets\claude-code.ico'
+$iconDst  = Join-Path $data 'claude-code.ico'
 $csSrc    = Join-Path $root 'scripts\focus-terminal.cs'
 $exe      = Join-Path $data 'claude-focus.exe'
 $hashFile = Join-Path $data 'claude-focus.sha256'
@@ -53,11 +55,14 @@ if ($Force -or -not (Test-Path $exe) -or $srcHash -ne $oldHash) {
 $cur = Get-ItemProperty -Path $appKey -ErrorAction SilentlyContinue
 if ($Force -or -not $cur -or $cur.DisplayName -ne 'Claude Code' -or $cur.IconUri -ne $iconDst) {
     New-Item -Path $appKey -Force | Out-Null
-    Set-ItemProperty -Path $appKey -Name DisplayName -Value 'Claude Code'
-    Set-ItemProperty -Path $appKey -Name IconUri -Value $iconDst
-    Set-ItemProperty -Path $appKey -Name IconBackgroundColor -Value 'FFD97757'
+    New-ItemProperty -Path $appKey -Name DisplayName -Value 'Claude Code' -PropertyType ExpandString -Force | Out-Null
+    New-ItemProperty -Path $appKey -Name IconUri -Value $iconDst -PropertyType ExpandString -Force | Out-Null
+    New-ItemProperty -Path $appKey -Name IconBackgroundColor -Value 'FFD97757' -PropertyType String -Force | Out-Null
     $changed += 'app-id'
 }
+# pre-1.2 installs used a different AUMID; drop it so it does not linger in notification settings
+$legacy = 'HKCU:\Software\Classes\AppUserModelId\Anthropic.ClaudeCode'
+if (Test-Path $legacy) { Remove-Item -Path $legacy -Recurse -Force; $changed += 'legacy-app-id' }
 
 # claude-focus:// protocol
 $curCmd = (Get-ItemProperty -Path "$proto\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
