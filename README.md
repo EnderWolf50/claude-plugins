@@ -6,8 +6,9 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 
 | Hook | Does |
 |---|---|
-| `SessionStart` | Reaps orphaned servers, then starts `tgrep serve <root>` when the repo has >= 5000 text files or already has a `.tgrep/` |
+| `SessionStart` | Reaps orphaned servers, then starts `tgrep serve <root>` when the repo is opted in (`.tgrep/` exists) or has >= 5000 text files and is not opted out |
 | `SessionEnd` | Kills every server whose root no other live session has as cwd |
+| `PreToolUse` (Bash) | Refuses `grep -r` / `-R` / `--recursive` (also `egrep`/`fgrep`) with a one-line reason pointing at `rg`; stream filters (`cmd \| grep x`), `git grep`, `rg`, `tgrep`, `ast-grep` pass. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 
@@ -41,7 +42,7 @@ Before the first `tgrep` or `ast-grep` call in a session, load the `search-tools
 ## Skills
 
 - `search-tools:reference` (model-invoked) — flags and gotchas: why a search brute-forced, `$$$` metavariables, `-r` vs `-U`, semble `content=` modes.
-- `/search-tools:reap` — sweep unused servers by hand and list what is still running.
+- `/search-tools:tgrep [on | off | status | reap]` — `on` opts the current repo in (builds the index, serves now, any size); `off` opts it out (stops the server, deletes `.tgrep/`, skipped on every session start until `on`); `status` (default) is the health check: policy, server state, whether a search from the root actually hits the server, log tail, every server on the machine; `reap` sweeps servers no live session uses.
 
 ## Knobs
 
@@ -49,16 +50,17 @@ Before the first `tgrep` or `ast-grep` call in a session, load the `search-tools
 |---|---|---|
 | `TGREP_SERVE_MIN_FILES` | `5000` | text-file count (via `tgrep count-files`) above which a repo gets a server |
 
-Opt a smaller repo in by creating `<root>/.tgrep/` (or running `tgrep index <root>` once). The hook adds `.tgrep/` to `.git/info/exclude`, never to the shared `.gitignore`.
+Opt-in / opt-out state: `<root>/.tgrep/` present = in; a line in `$CLAUDE_PLUGIN_DATA/opt-out` = out (wins). `/search-tools:tgrep on|off` maintains both. The hook adds `.tgrep/` to `.git/info/exclude`, never to the shared `.gitignore`.
 
 ## Files
 
 ```
 .claude-plugin/plugin.json      manifest
-hooks/hooks.json                SessionStart start / SessionEnd stop
-scripts/tgrep-serve.sh          start | stop | reap
+hooks/hooks.json                SessionStart / SessionEnd / PreToolUse(Bash)
+scripts/tgrep-serve.sh          start | stop | on | off | status | reap
+scripts/no-recursive-grep.sh    PreToolUse guard
 skills/reference/SKILL.md       search-tools:reference
-skills/reap/SKILL.md            /search-tools:reap
+skills/tgrep/SKILL.md           /search-tools:tgrep
 ```
 
-Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`.
+Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`. Opt-outs: `$CLAUDE_PLUGIN_DATA/opt-out`.

@@ -10,7 +10,7 @@ Routing (which tool for which ask) lives in your `CLAUDE.md`; this file holds wh
 ## tgrep 1.0.9 — trigram-indexed ripgrep
 
 - Flags mirror `rg` (`-i -w -F -g -t -A/-B/-C -l -c -o --json --vimgrep -P`): keep the command, swap the binary.
-- `tgrep serve <root>` builds the index itself and keeps it fresh with a file watcher. This plugin's hooks manage it: `start` (SessionStart) serves any repo with >= 5000 text files or an existing `.tgrep/` (override: `TGREP_SERVE_MIN_FILES`); `stop` (SessionEnd) and every `start` reap servers whose root no live session has as cwd, so a killed terminal or crash leaves nothing behind past the next session. `/search-tools:reap` runs that sweep by hand. Logs: `$CLAUDE_PLUGIN_DATA/logs/`.
+- `tgrep serve <root>` builds the index itself and keeps it fresh with a file watcher. This plugin's hooks manage it: `start` (SessionStart) serves any repo with >= 5000 text files or an existing `.tgrep/` (override: `TGREP_SERVE_MIN_FILES`); `stop` (SessionEnd) and every `start` reap servers whose root no live session has as cwd, so a killed terminal or crash leaves nothing behind past the next session. `/search-tools:tgrep status` is the health check, `on`/`off` opt a repo in or out, `reap` sweeps by hand. Logs: `$CLAUDE_PLUGIN_DATA/logs/`.
 - Index lives in `<root>/.tgrep`; the hook adds `.tgrep/` to `.git/info/exclude`.
 - The index is found only when the search runs **from `<root>`** (or with `--index-path <root>/.tgrep`). From a subdirectory it silently brute-forces — `--stats` says "Brute-force search" when that happened; scope with `-g 'sub/**'` from the root instead.
 - Without a server the index is a snapshot: files written after `tgrep index` are invisible until the next `tgrep index <root>`. `tgrep status <root>` shows whether a server (watcher) is up.
@@ -34,3 +34,4 @@ Routing (which tool for which ask) lives in your `CLAUDE.md`; this file holds wh
 ## ripgrep 15.2.0
 
 - The built-in Grep tool is ripgrep. Call `rg` directly in Bash for the flags the tool hides (`--files`, `--replace`, `-U`, `--stats`).
+- A tree search from Bash is `rg -n <pattern> [path]`; this plugin's PreToolUse hook refuses `grep -r` so the retry lands on `rg`. Stream filters (`cmd | grep x`) pass.
