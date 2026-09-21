@@ -16,8 +16,8 @@ Windows only (Git Bash, `tasklist`/`taskkill`, PowerShell CIM). Needs `tgrep`, `
 ## Install
 
 ```
-claude plugin marketplace add EnderWolf50/claude-search-tools
-claude plugin install search-tools@enderwolf50-search-tools
+claude plugin marketplace add EnderWolf50/claude-plugins
+claude plugin install search-tools@enderwolf50
 ```
 
 Or, from a local checkout: `claude --plugin-dir D:\claude-search-tools`.
@@ -55,7 +55,6 @@ Opt a smaller repo in by creating `<root>/.tgrep/` (or running `tgrep index <roo
 
 ```
 .claude-plugin/plugin.json      manifest
-.claude-plugin/marketplace.json lets the repo be added as a marketplace
 hooks/hooks.json                SessionStart start / SessionEnd stop
 scripts/tgrep-serve.sh          start | stop | reap
 skills/reference/SKILL.md       search-tools:reference
