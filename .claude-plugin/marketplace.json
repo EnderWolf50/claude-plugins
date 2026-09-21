@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "EnderWolf50's Claude Code plugins",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
@@ -34,7 +34,7 @@
         "url": "https://github.com/EnderWolf50/claude-search-tools.git"
       },
       "description": "tgrep server lifecycle (SessionStart/SessionEnd hooks) + search-tool reference skill (tgrep / ast-grep / semble / ripgrep)",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "EnderWolf50"
       },
