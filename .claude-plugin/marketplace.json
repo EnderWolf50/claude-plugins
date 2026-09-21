@@ -15,11 +15,16 @@
         "repo": "EnderWolf50/claude-win-toast"
       },
       "description": "Windows toast notifications with click-to-focus for Windows Terminal",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "EnderWolf50"
       },
-      "keywords": ["windows", "notification", "toast", "hooks"],
+      "keywords": [
+        "windows",
+        "notification",
+        "toast",
+        "hooks"
+      ],
       "category": "productivity"
     },
     {
@@ -33,7 +38,13 @@
       "author": {
         "name": "EnderWolf50"
       },
-      "keywords": ["windows", "search", "tgrep", "ast-grep", "hooks"],
+      "keywords": [
+        "windows",
+        "search",
+        "tgrep",
+        "ast-grep",
+        "hooks"
+      ],
       "category": "productivity"
     }
   ]
