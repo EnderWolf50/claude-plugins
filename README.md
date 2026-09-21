@@ -14,7 +14,7 @@ No dependencies: Windows PowerShell 5.1, the built-in WinRT toast API, and the i
 ## Install
 
 ```
-claude plugin marketplace add EnderWolf50/claude-win-toast
+claude plugin marketplace add EnderWolf50/claude-plugins
 claude plugin install win-toast@enderwolf50
 ```
 
@@ -51,7 +51,6 @@ click
 
 ```
 .claude-plugin/plugin.json      manifest
-.claude-plugin/marketplace.json lets the repo be added as a marketplace
 hooks/hooks.json                SessionStart / Notification / Stop
 scripts/notify.ps1              build + show the toast
 scripts/register.ps1            icon + exe build + app-id + protocol registration
