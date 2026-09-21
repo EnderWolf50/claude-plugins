@@ -1,0 +1,28 @@
+{
+  "description": "tgrep serve lifecycle: start for large repos on SessionStart, reap unused servers on SessionEnd",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tgrep-serve.sh\" start",
+            "timeout": 20,
+            "statusMessage": "tgrep serve check"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tgrep-serve.sh\" stop",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
