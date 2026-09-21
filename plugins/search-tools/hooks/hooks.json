@@ -1,0 +1,40 @@
+{
+  "description": "tgrep serve lifecycle (SessionStart start / SessionEnd stop) and a Bash guard that refuses recursive grep in favour of rg",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tgrep-serve.sh\" start",
+            "timeout": 20,
+            "statusMessage": "tgrep serve check"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tgrep-serve.sh\" stop",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/no-recursive-grep.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

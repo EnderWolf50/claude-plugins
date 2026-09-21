@@ -1,0 +1,10 @@
+{
+  "name": "search-tools",
+  "description": "Keeps a tgrep (trigram-indexed grep) server alive only while a Claude Code session is using a large repo, reaps orphaned servers after crashes, refuses recursive grep in Bash in favour of rg, and ships a reference skill for tgrep / ast-grep / semble / ripgrep flags and gotchas.",
+  "version": "1.1.0",
+  "author": {
+    "name": "EnderWolf50"
+  },
+  "license": "MIT",
+  "keywords": ["windows", "search", "tgrep", "ast-grep", "semble", "ripgrep", "hooks"]
+}
