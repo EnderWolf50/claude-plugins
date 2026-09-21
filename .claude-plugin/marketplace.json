@@ -11,7 +11,7 @@
     {
       "name": "win-toast",
       "source": {
-        "source": "git",
+        "source": "url",
         "url": "https://github.com/EnderWolf50/claude-win-toast.git"
       },
       "description": "Windows toast notifications with click-to-focus for Windows Terminal",
@@ -30,7 +30,7 @@
     {
       "name": "search-tools",
       "source": {
-        "source": "git",
+        "source": "url",
         "url": "https://github.com/EnderWolf50/claude-search-tools.git"
       },
       "description": "tgrep server lifecycle (SessionStart/SessionEnd hooks) + search-tool reference skill (tgrep / ast-grep / semble / ripgrep)",
