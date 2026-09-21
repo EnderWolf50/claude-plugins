@@ -21,7 +21,7 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 claude plugin install search-tools@enderwolf50
 ```
 
-Or, from a local checkout: `claude --plugin-dir D:\claude-search-tools`.
+Or, from a local checkout of the marketplace: `claude --plugin-dir D:\claude-plugins\plugins\search-tools`.
 
 Then add the routing to your `~/.claude/CLAUDE.md` (the plugin owns the machinery, you own the policy):
 

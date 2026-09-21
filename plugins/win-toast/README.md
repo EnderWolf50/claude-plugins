@@ -18,7 +18,7 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 claude plugin install win-toast@enderwolf50
 ```
 
-Or, from a local checkout: `claude --plugin-dir D:\claude-win-toast`.
+Or, from a local checkout of the marketplace: `claude --plugin-dir D:\claude-plugins\plugins\win-toast`.
 
 Registration (app identity + `claude-focus://` protocol) runs automatically on `SessionStart`. To force it or send a test toast, run `/win-toast:setup`.
 

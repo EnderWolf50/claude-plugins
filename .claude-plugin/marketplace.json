@@ -5,15 +5,12 @@
   },
   "metadata": {
     "description": "EnderWolf50's Claude Code plugins",
-    "version": "1.1.0"
+    "version": "2.0.0"
   },
   "plugins": [
     {
       "name": "win-toast",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/EnderWolf50/claude-win-toast.git"
-      },
+      "source": "./plugins/win-toast",
       "description": "Windows toast notifications with click-to-focus for Windows Terminal",
       "version": "1.2.1",
       "author": {
@@ -29,10 +26,7 @@
     },
     {
       "name": "search-tools",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/EnderWolf50/claude-search-tools.git"
-      },
+      "source": "./plugins/search-tools",
       "description": "tgrep server lifecycle (SessionStart/SessionEnd hooks) + search-tool reference skill (tgrep / ast-grep / semble / ripgrep)",
       "version": "1.1.0",
       "author": {
