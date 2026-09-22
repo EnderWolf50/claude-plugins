@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+- The Bash guard now refuses every `grep` that reads files (anything not directly after a pipe: `grep x file`, `xargs grep`, `if grep -q`), not only recursive ones; `cmd | grep x` still passes. Script renamed `grep-guard.sh`.
+
 ## 1.1.0
 - `/search-tools:tgrep on | off | status | reap` replaces `/search-tools:reap`: per-repo opt-in/opt-out (opt-out list in `$CLAUDE_PLUGIN_DATA/opt-out`), and a health check that proves a search from the root hits the server.
 - New `PreToolUse` (Bash) hook refuses recursive `grep` (`-r`/`-R`/`--recursive`, also `egrep`/`fgrep`) and points at `rg`; `SEARCH_TOOLS_ALLOW_GREP=1` disables it.

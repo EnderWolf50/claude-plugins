@@ -1,5 +1,5 @@
 {
-  "description": "tgrep serve lifecycle (SessionStart start / SessionEnd stop) and a Bash guard that refuses recursive grep in favour of rg",
+  "description": "tgrep serve lifecycle (SessionStart start / SessionEnd stop) and a Bash guard: grep only as a pipe filter, rg for files",
   "hooks": {
     "SessionStart": [
       {
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/no-recursive-grep.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/grep-guard.sh\"",
             "timeout": 10
           }
         ]
