@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# PreToolUse (Bash) hook: grep is a stream filter, rg is the file searcher.
+# PreToolUse (Bash) hook: tree searches go to rg (or tgrep); grep keeps the rest.
 #
 # Refused → retry lands on rg:
-#   - any grep / egrep / fgrep that is not directly after a pipe (`grep x file`,
-#     `cd d && grep x f`, `xargs grep`, `if grep -q x f`), i.e. one reading files
-#   - any grep with a recursive flag (-r / -R / --recursive / --dereference-recursive)
-# Allowed: `cmd | grep x`, `git grep`, rg, tgrep, ast-grep.
+#   - grep / egrep / fgrep with a recursive flag (-r / -R / --recursive / --dereference-recursive)
+#   - `xargs grep` (a tree search in disguise: find | xargs grep)
+# Allowed: grep on a file or a stream, git grep, rg, tgrep, ast-grep.
 # Set SEARCH_TOOLS_ALLOW_GREP=1 to disable.
 
 set -u
@@ -28,14 +27,13 @@ verdict="$(printf '%s' "$cmd" | awk -v RS='\001' '
     # the flags of this invocation: up to the next pipe / ; / &&
     inv = rest; sub(/[|;&].*/, "", inv)
     if (inv ~ /[ \t]-[A-Za-z]*[rR]/ || inv ~ /--(dereference-)?recursive/) { print "recursive"; exit }
-    sub(/[ \t\n]+$/, "", pre)
-    if (pre == "" || pre !~ /\|$/ || pre ~ /\|\|$/) { print "file"; exit }
+    if (pre ~ /(^|[^A-Za-z0-9_])xargs([ \t]+-[^ \t]+)*[ \t]+$/) { print "xargs"; exit }
   }
 }')"
 
 case "$verdict" in
   recursive) why="Tree search: use rg — \`rg -n <pattern> [path]\` (same flags as grep, respects .gitignore, faster). On a large repo with a tgrep server, run \`tgrep\` from the repo root instead." ;;
-  file)      why="grep on files: use rg with the same flags — \`rg -n -i -E '<pattern>' <file>\`. grep stays for stream filters only (\`cmd | grep x\`)." ;;
+  xargs)     why="Tree search via xargs grep: run rg on the directory instead — \`rg -n <pattern> [path]\` walks the tree itself and respects .gitignore; replace the find filter with \`-g '*.ext'\`." ;;
   *)         exit 0 ;;
 esac
 

@@ -8,7 +8,7 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 |---|---|
 | `SessionStart` | Reaps orphaned servers, then starts `tgrep serve <root>` when the repo is opted in (`.tgrep/` exists) or has >= 5000 text files and is not opted out |
 | `SessionEnd` | Kills every server whose root no other live session has as cwd |
-| `PreToolUse` (Bash) | grep is a stream filter, rg is the file searcher: any `grep`/`egrep`/`fgrep` not directly after a pipe (`grep x file`, `xargs grep`, `if grep -q`) or carrying `-r`/`-R`/`--recursive` is refused with a one-line reason pointing at `rg`; `cmd \| grep x`, `git grep`, `rg`, `tgrep`, `ast-grep` pass. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
+| `PreToolUse` (Bash) | Refuses tree searches via grep — `grep -r`/`-R`/`--recursive` (also `egrep`/`fgrep`) and `find … \| xargs grep` — with a one-line reason pointing at `rg`. grep on a single file or a stream, `git grep`, `rg`, `tgrep`, `ast-grep` pass. Performance only, not style. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 

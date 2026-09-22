@@ -34,4 +34,4 @@ Routing (which tool for which ask) lives in your `CLAUDE.md`; this file holds wh
 ## ripgrep 15.2.0
 
 - The built-in Grep tool is ripgrep. Call `rg` directly in Bash for the flags the tool hides (`--files`, `--replace`, `-U`, `--stats`).
-- From Bash, files are searched with `rg` (same flags: `rg -n -i -E '<pattern>' <file-or-dir>`); this plugin's PreToolUse hook refuses any `grep` that reads files so the retry lands on `rg`. `grep` stays for stream filters (`cmd | grep x`).
+- A tree search from Bash is `rg -n <pattern> [path]`; this plugin's PreToolUse hook refuses `grep -r` and `xargs grep` so the retry lands on `rg`. grep on one file or a stream is fine.

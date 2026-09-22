@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+- Guard narrowed back to what costs time: recursive grep and `xargs grep`. grep on a single file or a stream passes again (1.2.0 refused every grep that read a file).
+
 ## 1.2.0
 - The Bash guard now refuses every `grep` that reads files (anything not directly after a pipe: `grep x file`, `xargs grep`, `if grep -q`), not only recursive ones; `cmd | grep x` still passes. Script renamed `grep-guard.sh`.
 
