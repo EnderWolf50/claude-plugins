@@ -8,6 +8,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 source "$here/../scripts/tgrep-serve.sh"
 
 fail=0
+cr=$'\r'   # set here: Git Bash yields '' for $'\r' written inside "$(…)"
 # check <name> <actual> <expected> — order-insensitive, one item per line
 check() {
   local got want
@@ -39,6 +40,10 @@ check "non-ASCII root: session cwd and root lower-case the same way (ASCII only)
   "$(orphans 'P|100
 P|9
 S|9|tgrep.exe serve D:/Émile/Ωmega' '100|D:\Émile\Ωmega')" ''
+
+check "CRLF session lines (Windows jq): a root in use on any line stays in use" \
+  "$(orphans "$crm" "100|D:\CRM$cr
+7|C:\other$cr")" ''
 
 check "live session with cwd above the root: the root is not in use" \
   "$(orphans "$crm" '100|D:\')" \

@@ -66,11 +66,12 @@ servers_of() {
 orphans() {
   local snap="$1" keep="${3:-}" live cwds="" pid cwd spid r c hit
   live=" $(printf '%s\n' "$snap" | sed -n 's/^P|//p' | tr '\n' ' ') "
-  # ASCII-only lower-casing, the same as norm; bash ${x,,} mangles UTF-8 here.
+  # Drop the CR of Windows jq's CRLF, then ASCII-only lower-casing, the same as
+  # norm (bash ${x,,} mangles UTF-8 here).
   while IFS='|' read -r pid cwd; do
     [ -n "$pid" ] || continue
     case "$live" in *" $pid "*) cwds="$cwds$cwd"$'\n' ;; esac
-  done <<<"$(printf '%s' "$2" | tr 'A-Z' 'a-z')"
+  done <<<"$(printf '%s' "$2" | sed 's/\r$//; y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/')"
 
   servers_of "$snap" | while IFS='|' read -r spid r; do
     [ -n "$keep" ] && [ "$r" = "$keep" ] && continue
