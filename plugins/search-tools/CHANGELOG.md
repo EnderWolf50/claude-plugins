@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.3
+- Internal: the orphan-server decision in `tgrep-serve.sh` is now a pure function (`orphans`: snapshot + live sessions in, orphan servers out), and `off` stops its root's servers without consulting sessions. No behaviour change. New `tests/orphans.sh` pins the decision.
+
 ## 1.2.2
 - SessionEnd hook no longer shows `Hook cancelled`: SessionEnd hooks share a 1.5 s budget (the plugin `timeout` does not raise it) and `stop` took ~3 s. It now parses stdin without forks and reaps in a detached `reap <session-id>`, returning in ~0.1 s. Sessions ending in the home directory now reap too.
 

@@ -17,7 +17,8 @@ Both are Windows-only. Each plugin's README covers its own hooks, skills and kno
 
 ```
 .claude-plugin/marketplace.json   catalog — every plugin is "./plugins/<name>"
-plugins/<name>/                   a plugin: .claude-plugin/plugin.json, hooks/, scripts/, skills/, README, CHANGELOG
+plugins/<name>/                   a plugin: .claude-plugin/plugin.json, hooks/, scripts/, skills/, tests/, README, CHANGELOG, CONTEXT.md (glossary)
+CONTEXT-MAP.md                    index of the per-plugin glossaries
 ```
 
 ## Releasing

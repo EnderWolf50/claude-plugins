@@ -61,6 +61,16 @@ scripts/tgrep-serve.sh          start | stop | on | off | status | reap
 scripts/grep-guard.sh           PreToolUse guard
 skills/reference/SKILL.md       search-tools:reference
 skills/tgrep/SKILL.md           /search-tools:tgrep
+tests/orphans.sh                orphan-server decision, table-driven
+CONTEXT.md                      glossary: root, live session, orphan server, reap
 ```
+
+## Tests
+
+```
+bash plugins/search-tools/tests/orphans.sh
+```
+
+Git Bash only (uses `cygpath`). Sources `tgrep-serve.sh` for its functions; starts and kills nothing.
 
 Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`. Opt-outs: `$CLAUDE_PLUGIN_DATA/opt-out`.
