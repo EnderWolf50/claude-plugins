@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+- Linux and macOS support. `$OSTYPE` picks the process snapshot (`ps` instead of PowerShell), `kill` instead of `taskkill`, and path normalization: symlinks resolved on both (Claude Code stores the physical cwd), case folded on macOS and Windows only. Background work (the SessionEnd reap, `tgrep serve`) starts under `setsid` where available. macOS is verified in CI only.
+- Safety: when the session files look unreadable (no sessions dir, no file, a file without `pid` or `cwd`, broken JSON), nothing is reaped and `logs/reap.log` gets a line. Before, an unreadable sessions dir made every server an orphan.
+- CI: `tests/orphans.sh` on Ubuntu, macOS and Windows.
+
 ## 1.2.3
 - Fix: reaping killed servers whose root was in use. Windows `jq` ends lines with CRLF, so every session cwd but the last carried a trailing CR and never matched its root; a session start or end anywhere then killed the server of any other open repo unless its session file happened to sort last. The CR is now dropped before matching.
 - Internal: the orphan-server decision in `tgrep-serve.sh` is now a pure function (`orphans`: snapshot + live sessions in, orphan servers out), and `off` stops its root's servers without consulting sessions. No behaviour change. New `tests/orphans.sh` pins the decision.

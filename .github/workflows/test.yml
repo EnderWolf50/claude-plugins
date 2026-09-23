@@ -1,0 +1,22 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  search-tools:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # The shells the hooks run under: /bin/bash is the system bash (3.2 on macOS;
+      # plain `bash` there is Homebrew's 5.x), Git Bash on Windows.
+      - if: runner.os != 'Windows'
+        run: /bin/bash --version | head -1 && /bin/bash plugins/search-tools/tests/orphans.sh
+      - if: runner.os == 'Windows'
+        run: bash plugins/search-tools/tests/orphans.sh
+        shell: bash

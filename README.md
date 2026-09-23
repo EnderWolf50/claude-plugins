@@ -11,7 +11,7 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 | [win-toast](plugins/win-toast/) | `claude plugin install win-toast@enderwolf50` | Windows toast notifications with click-to-focus for Windows Terminal |
 | [search-tools](plugins/search-tools/) | `claude plugin install search-tools@enderwolf50` | keeps a `tgrep serve` alive only while a session uses a large repo; refuses `grep -r` in favour of `rg`; reference skill for tgrep / ast-grep / semble / ripgrep |
 
-Both are Windows-only. Each plugin's README covers its own hooks, skills and knobs.
+win-toast is Windows-only; search-tools runs on Windows, Linux and macOS. Each plugin's README covers its own hooks, skills and knobs.
 
 ## Layout
 

@@ -12,7 +12,17 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 
-Windows only (Git Bash, `tasklist`/`taskkill`, PowerShell CIM). Needs `tgrep`, `jq` and Git Bash on `PATH`; silently does nothing when `tgrep` is missing.
+If the session files look unreadable (no `~/.claude/sessions`, no file in it, a file without `pid` or `cwd`), nothing is reaped and one line goes to `$CLAUDE_PLUGIN_DATA/logs/reap.log`: the format is Claude Code-internal, and misreading it would make every server look orphaned.
+
+Silently does nothing when `tgrep` is missing. Per OS:
+
+| OS | Needs on `PATH` | Paths compare |
+|---|---|---|
+| Windows | Git Bash, `jq`, PowerShell (process snapshot), `taskkill` | case-insensitive |
+| Linux | `bash`, `jq`, `ps`, `kill`, `realpath` (`setsid` if present) | symlinks resolved, case-sensitive |
+| macOS 13+ | same as Linux (system bash 3.2 is enough; `realpath` ships since macOS 13) | symlinks resolved, case-insensitive |
+
+macOS is verified in CI only; Windows and Linux also end-to-end.
 
 ## Install
 
@@ -71,6 +81,6 @@ CONTEXT.md                      glossary: root, live session, orphan server, rea
 bash plugins/search-tools/tests/orphans.sh
 ```
 
-Git Bash only (uses `cygpath`). Sources `tgrep-serve.sh` for its functions; starts and kills nothing.
+Runs on every supported OS (fixtures follow `$OSTYPE`); CI runs it on Ubuntu, macOS and Windows on every push. Sources `tgrep-serve.sh` for its functions; starts and kills nothing.
 
-Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`. Opt-outs: `$CLAUDE_PLUGIN_DATA/opt-out`.
+Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`, skipped reaps in `$CLAUDE_PLUGIN_DATA/logs/reap.log`. Opt-outs: `$CLAUDE_PLUGIN_DATA/opt-out`.
