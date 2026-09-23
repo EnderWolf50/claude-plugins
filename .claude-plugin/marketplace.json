@@ -28,7 +28,7 @@
       "name": "search-tools",
       "source": "./plugins/search-tools",
       "description": "tgrep server lifecycle (SessionStart/SessionEnd hooks) + search-tool reference skill (tgrep / ast-grep / semble / ripgrep)",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "author": {
         "name": "EnderWolf50"
       },

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+- SessionEnd hook no longer shows `Hook cancelled`: SessionEnd hooks share a 1.5 s budget (the plugin `timeout` does not raise it) and `stop` took ~3 s. It now parses stdin without forks and reaps in a detached `reap <session-id>`, returning in ~0.1 s. Sessions ending in the home directory now reap too.
+
 ## 1.2.1
 - Guard narrowed back to what costs time: recursive grep and `xargs grep`. grep on a single file or a stream passes again (1.2.0 refused every grep that read a file).
 

@@ -1,7 +1,7 @@
 {
   "name": "search-tools",
   "description": "Keeps a tgrep (trigram-indexed grep) server alive only while a Claude Code session is using a large repo, reaps orphaned servers after crashes, refuses tree searches via grep in Bash (grep -r, xargs grep) in favour of rg, and ships a reference skill for tgrep / ast-grep / semble / ripgrep flags and gotchas.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": {
     "name": "EnderWolf50"
   },

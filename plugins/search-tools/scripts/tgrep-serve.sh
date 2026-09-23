@@ -8,7 +8,8 @@
 #
 #   tgrep-serve.sh stop    (SessionEnd hook)
 #     Reap every server whose root no other live session is using, this
-#     session excluded.
+#     session excluded. Runs detached (`reap <session-id>`) so the hook
+#     returns inside the SessionEnd budget.
 #
 #   tgrep-serve.sh on | off | status | reap      (/search-tools:tgrep)
 #     on      opt <root> in (build the index, forget any opt-out) and serve now
@@ -113,6 +114,27 @@ serve_now() {
   echo "tgrep serve started for $root (log: $log). Run tgrep from that root so searches hit the server."
 }
 
+# stop and reap act machine-wide, so they skip the <root> checks below.
+case "$mode" in
+stop)
+  IFS= read -r -d '' input || true                      # hook stdin
+  # /clear ends the session id but the process stays in the repo.
+  [[ $input =~ \"reason\"[[:space:]]*:[[:space:]]*\"clear\" ]] && exit 0
+  sid=""
+  [[ $input =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]*)\" ]] && sid="${BASH_REMATCH[1]}"
+  # SessionEnd hooks share a 1.5 s budget (plugin `timeout` does not raise it)
+  # and the PowerShell snapshot alone takes longer: reap detached, return now.
+  # Parsed without jq for the same reason — each fork costs ~0.5 s at exit.
+  nohup bash "$0" reap "$sid" >/dev/null 2>&1 </dev/null &
+  disown 2>/dev/null || true
+  exit 0
+  ;;
+reap)
+  reap "${2:-}"
+  exit 0
+  ;;
+esac
+
 # Never index the home directory itself.
 [ "$(norm "$root")" = "$(norm "$HOME")" ] && exit 0
 me_root="$(norm "$root")"
@@ -127,17 +149,6 @@ start)
     [ "$count" -ge "$min" ] || exit 0
   fi
   serve_now
-  ;;
-
-stop)
-  input="$(cat)"                                        # hook stdin
-  # /clear ends the session id but the process stays in the repo.
-  [ "$(printf '%s' "$input" | jq -r '.reason // empty')" = "clear" ] && exit 0
-  reap "$(printf '%s' "$input" | jq -r '.session_id // empty')"
-  ;;
-
-reap)
-  reap
   ;;
 
 on)
