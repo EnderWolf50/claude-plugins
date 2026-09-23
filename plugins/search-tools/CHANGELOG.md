@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+- Fix: 1.3.0's session-file guard stopped all reaping for good as soon as one session file was unreadable. Now only a *blocking session file* stops it: a live pid whose `cwd` cannot be read, or no readable pid and modified within a day. A dead session's broken file and day-old leftovers are ignored. An empty or truncated file no longer hides the others (each file is parsed on its own).
+- `/search-tools:tgrep status` ends with `reap: OK` or `reap: blocked by …` (the blocking file and why, no session files, or a jq failure).
+- A session ending never blocks its own reap: its file is left out before any check.
+- `logs/reap.log` keeps its last 100 lines.
+
 ## 1.3.0
 - Linux and macOS support. `$OSTYPE` picks the process snapshot (`ps` instead of PowerShell), `kill` instead of `taskkill`, and path normalization: symlinks resolved on both (Claude Code stores the physical cwd), case folded on macOS and Windows only. Background work (the SessionEnd reap, `tgrep serve`) starts under `setsid` where available. macOS is verified in CI only.
 - Safety: when the session files look unreadable (no sessions dir, no file, a file without `pid` or `cwd`, broken JSON), nothing is reaped and `logs/reap.log` gets a line. Before, an unreadable sessions dir made every server an orphan.

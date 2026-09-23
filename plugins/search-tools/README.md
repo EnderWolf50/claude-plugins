@@ -12,7 +12,7 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 
-If the session files look unreadable (no `~/.claude/sessions`, no file in it, a file without `pid` or `cwd`), nothing is reaped and one line goes to `$CLAUDE_PLUGIN_DATA/logs/reap.log`: the format is Claude Code-internal, and misreading it would make every server look orphaned.
+The session files are a Claude Code-internal format, and misreading one would make its server look orphaned. So nothing is reaped while a *blocking session file* exists: one whose pid is live but whose `cwd` cannot be read, or one without a readable pid modified within the last day. An unreadable file of a dead session, or a day-old broken one, is ignored. No `~/.claude/sessions` or no file in it also blocks. Blocked reaps go to `$CLAUDE_PLUGIN_DATA/logs/reap.log` (last 100 lines), and `/search-tools:tgrep status` ends with `reap: OK` or `reap: blocked by …` (a file and its reason, no session files, or a jq failure).
 
 Silently does nothing when `tgrep` is missing. Per OS:
 

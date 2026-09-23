@@ -112,12 +112,16 @@ servers_of() {
   done
 }
 
+# " <pid> <pid> … " for every live process in a snapshot, for `case " $pid "` lookups.
+live_pids() { echo " $(printf '%s\n' "$1" | sed -n 's/^P|//p' | tr '\n' ' ') "; }
+
 # orphans <snapshot> <sessions> [normalized-root-to-keep]
 # <sessions> is "<pid>|<cwd>" per line. Prints "<pid>|<normalized-root>" for every
 # server whose root no live session (pid in the snapshot) has its cwd at or under.
+# Other lines (session_records' "!" records) never match a live pid.
 orphans() {
   local snap="$1" keep="${3:-}" live cwds="" pid cwd spid r c hit under
-  live=" $(printf '%s\n' "$snap" | sed -n 's/^P|//p' | tr '\n' ' ') "
+  live="$(live_pids "$snap")"
   # Drop the CR of Windows jq's CRLF, then fold the case like norm does.
   while IFS='|' read -r pid cwd; do
     [ -n "$pid" ] || continue
@@ -134,6 +138,27 @@ orphans() {
     done <<<"$cwds"
     [ -n "$hit" ] || echo "$spid|$r"
   done
+}
+
+# blocker <snapshot> <records> <recent-files>
+# Records are session_records lines; <recent-files> lists session files modified in
+# the last day. Prints "<file> (<reason>)" for the first blocking session file: an
+# unreadable one whose pid is live, or that has no pid and is recent. A dead pid
+# cannot pin a root, and a day-old unparsable file is a leftover, not a session
+# being written. Files compare by name: jq and find may spell the dir differently.
+blocker() {
+  local live recent=" " f line pid why
+  live="$(live_pids "$1")"
+  while IFS= read -r f; do [ -n "$f" ] && recent="$recent${f##*/} "; done <<<"$3"
+  while IFS='|' read -r line pid why; do
+    case "$line" in !*) ;; *) continue ;; esac
+    f="${line#!}"; f="${f##*/}"; f="${f##*\\}"; why="${why%"$cr"}"
+    if [ -n "$pid" ]; then
+      case "$live" in *" $pid "*) echo "$f (live session, $why)"; return ;; esac
+    else
+      case "$recent" in *" $f "*) echo "$f ($why, modified within a day)"; return ;; esac
+    fi
+  done <<<"$2"
 }
 
 # Start a server for <root> if none runs. Prints one line on start.
@@ -154,20 +179,51 @@ serve_now() {
   echo "tgrep serve started for $root (log: $log). Run tgrep from that root so searches hit the server."
 }
 
-# "<pid>|<cwd>" for every session file except <session-id-to-ignore>: one jq pass.
-# Fails when the files do not look like sessions (no dir, no file, a file without
-# pid or cwd, unparsable JSON): the format is Claude Code-internal, and reading it
-# wrong would make every server an orphan. Judged on the output, not jq's exit
-# status, which jq versions disagree on after error().
-sessions_except() {
-  local out
+# session_records <session-id-to-ignore>: one line per session file but the ignored
+# one — "<pid>|<cwd>", or "!<file>|<pid or empty>|<reason>" when it cannot be read
+# (see blocker). One jq pass; each file comes in whole as a string (--rawfile) and
+# is parsed on its own, so a broken or empty file, a missing final newline, or jq's
+# version-dependent exit status after an error cannot touch the other records. The
+# ignored session is dropped before any check, so a stop never blocks on its own file.
+# Fails with 1 when there is no session file at all, 2 when jq fails (e.g. a file
+# removed between the glob and the read).
+session_records() {
+  local f i=0 args=()
   set -- "$1" "$sessions"/*.json
   [ -f "$2" ] || return 1
-  out="$(jq -r --arg skip "$1" '
-    if (.pid | type) != "number" or (.cwd | type) != "string" then "!"
-    else select(.sessionId != $skip) | "\(.pid)|\(.cwd)" end' "${@:2}" 2>&1)" || return 1
-  case $'\n'"$out" in *$'\n'[!0-9]*) return 1 ;; esac
-  [ -z "$out" ] || printf '%s\n' "$out"
+  for f in "${@:2}"; do args+=(--arg "p$i" "$f" --rawfile "f$i" "$f"); i=$((i + 1)); done
+  jq -nr --arg skip "$1" --argjson n "$i" "${args[@]}" '
+    range($n) as $i | $ARGS.named["p\($i)"] as $f
+    | ($ARGS.named["f\($i)"] | try fromjson catch null) as $j
+    | if ($j | type) != "object" then "!\($f)||unparsable"
+      elif $j.sessionId == $skip then empty
+      elif ($j.pid | type) != "number" then "!\($f)||no pid"
+      elif ($j.cwd | type) != "string" then "!\($f)|\($j.pid)|no cwd"
+      else "\($j.pid)|\($j.cwd)" end' 2>/dev/null || return 2
+}
+
+# Session files modified in the last day, when some record has no pid (else no fork).
+recent_files() {
+  case $'\n'"$1" in *$'\n!'*'||'*) find "$sessions" -name '*.json' -mmin -1440 2>/dev/null ;; esac
+}
+
+# why_not_reap <snapshot> <records> <session_records status>
+# "blocked by <what>" when reaping must not happen, else nothing.
+why_not_reap() {
+  local b
+  case "$3" in
+  0) b="$(blocker "$1" "$2" "$(recent_files "$2")")" ;;
+  1) b="no session files in $sessions" ;;
+  *) b="a jq failure reading $sessions" ;;
+  esac
+  [ -z "$b" ] || echo "blocked by $b"
+}
+
+# One line to logs/reap.log, keeping the last 100 (tmp per pid: reaps may overlap).
+reap_skipped() {
+  local log="$logdir/reap.log"
+  mkdir -p "$logdir"
+  { tail -n 99 "$log" 2>/dev/null; echo "$(date '+%F %T') reap skipped: $1"; } >"$log.$$" && mv -f "$log.$$" "$log"
 }
 
 # servers_for_root <snapshot> <normalized-root>: pids serving exactly that root.
@@ -187,13 +243,12 @@ kill_pids() {
 
 # reap [session-id-to-ignore] [normalized-root-to-keep]
 reap() {
-  local live
-  if ! live="$(sessions_except "${1:-}")"; then
-    mkdir -p "$logdir"
-    echo "$(date '+%F %T') reap skipped: $sessions unreadable" >>"$logdir/reap.log"
-    return 0
-  fi
-  orphans "$(snapshot)" "$live" "${2:-}" | kill_pids
+  local records rc snap why
+  records="$(session_records "${1:-}")"; rc=$?
+  snap="$(snapshot)"
+  why="$(why_not_reap "$snap" "$records" "$rc")"
+  if [ -n "$why" ]; then reap_skipped "$why"; return 0; fi
+  orphans "$snap" "$records" "${2:-}" | kill_pids
 }
 
 main() {
@@ -278,8 +333,13 @@ main() {
       echo "health: no server for this root"
     fi
     echo
-    echo "all tgrep servers on this machine (shim + exe both listed per root):"
-    servers_of "$(snapshot)" | sed 's/^/  /'
+    snap="$(snapshot)"
+    echo "all tgrep servers on this machine (shim + exe both listed per root on Windows):"
+    servers_of "$snap" | sed 's/^/  /'
+    records="$(session_records "")"; rc=$?
+    why="$(why_not_reap "$snap" "$records" "$rc")"
+    echo
+    echo "reap: ${why:-OK}"
     ;;
   esac
 }

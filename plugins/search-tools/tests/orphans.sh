@@ -141,44 +141,114 @@ darwin*)
   ;;
 esac
 
-# sessions_except: the session files, or failure (reap nothing) when they look unreadable.
+# blocker <snapshot> <records> <recent-files>: the first blocking session file, or nothing.
+# Records are "<pid>|<cwd>" or "!<file>|<pid or empty>|<reason>".
+snap9='P|9
+P|100'
+check "no unreadable record: nothing blocks" \
+  "$(blocker "$snap9" '100|/x' '')" ''
+
+check "live pid, cwd unreadable: blocks" \
+  "$(blocker "$snap9" '!/s/100.json|100|no cwd' '')" \
+  '100.json (live session, no cwd)'
+
+check "dead pid, cwd unreadable: ignored" \
+  "$(blocker "$snap9" '!/s/555.json|555|no cwd' '')" ''
+
+check "no pid, modified within a day: blocks (recent list may spell the dir differently)" \
+  "$(blocker "$snap9" '!C:/s/7.json||unparsable' '/c/s/7.json')" \
+  '7.json (unparsable, modified within a day)'
+
+check "no pid, older than a day: ignored" \
+  "$(blocker "$snap9" '!/s/7.json||unparsable' '/s/other.json')" ''
+
+check "CRLF records: still blocks" \
+  "$(blocker "$snap9" "100|/x$cr
+!/s/100.json|100|no cwd$cr" '')" \
+  '100.json (live session, no cwd)'
+
+# session_records <session-id-to-ignore>: one record per session file (names only
+# compared: jq may print the dir as C:/…); fails when there is no session file at all.
 sdir="$(mktemp -d)"
 sessions="$sdir/sessions"
 status_of() { "$@" >/dev/null 2>&1 && echo ok || echo refused; }
+records_of() { session_records "$1" | tr -d '\r' | sed 's|^!.*/|!|'; }
 
-check "sessions dir missing: refused" "$(status_of sessions_except '')" refused
+check "sessions dir missing: refused" "$(status_of session_records '')" refused
 
 mkdir "$sessions"
-check "sessions dir without session files: refused" "$(status_of sessions_except '')" refused
+check "sessions dir without session files: refused" "$(status_of session_records '')" refused
 
 printf '{"pid":100,"sessionId":"a","cwd":"/x"}' >"$sessions/100.json"
 printf '{"pid":200,"sessionId":"b","cwd":"/y"}' >"$sessions/200.json"
-check "every other session is listed; the ending one is left out" \
-  "$(sessions_except b | tr -d '\r')" '100|/x'
+check "every other session is listed; the ending one is left out" "$(records_of b)" '100|/x'
 
 check "only the ending session left: nothing listed, not refused" \
-  "$(rm "$sessions/100.json"; status_of sessions_except b)" ok
+  "$(rm "$sessions/100.json"; status_of session_records b)" ok
 
-printf '{"pid":300,"sessionId":"c"}' >"$sessions/300.json"
-check "a session file without cwd: refused" "$(status_of sessions_except '')" refused
+printf '{"pid":300,"sessionId":"c"}' >"$sessions/1.json"
+check "a file without cwd: a ! record with its pid, sorting before a good one" \
+  "$(records_of '')" '!1.json|300|no cwd
+200|/y'
+rm "$sessions/1.json"
 
-mv "$sessions/300.json" "$sessions/1.json"
-check "a session file without cwd sorting before a good one: refused (jq 1.8.1 exits 0 on error)" \
-  "$(status_of sessions_except '')" refused
+printf '{"pid":300,"sessionId":"end"}' >"$sessions/1.json"
+check "the ending session's own file is left out even without cwd (stop must not block itself)" \
+  "$(records_of end)" '200|/y'
 rm "$sessions/1.json"
 
 printf '{"sessionId":"c","cwd":"/z"}' >"$sessions/300.json"
-check "a session file without pid: refused" "$(status_of sessions_except '')" refused
+check "a file without pid: a ! record, no pid" "$(records_of '')" '!300.json||no pid
+200|/y'
 
 printf '{"pid":300,' >"$sessions/300.json"
-check "a truncated session file: refused" "$(status_of sessions_except '')" refused
+check "a truncated file: unparsable" "$(records_of '')" '!300.json||unparsable
+200|/y'
 
-# reap through stand-in adapters: refused sessions → log line, nothing killed.
+: >"$sessions/300.json"
+check "an empty file: unparsable" "$(records_of '')" '!300.json||unparsable
+200|/y'
+rm "$sessions/300.json"
+
+# reap through stand-in adapters.
 logdir="$sdir/logs"
-snapshot() { printf 'P|9\nS|9|tgrep serve /nowhere\n'; }
-kill_pids() { cat >"$sdir/killed"; }
+snapshot() { printf 'P|9\nP|300\nS|9|tgrep serve /nowhere\n'; }
+kill_pids() { cat >>"$sdir/killed"; }
+
+printf '{"pid":300,"sessionId":"c"}' >"$sessions/300.json"
 reap ''
-check "reap with unreadable sessions kills nothing" "$([ -e "$sdir/killed" ] && echo killed)" ''
-check "reap with unreadable sessions logs why" "$(grep -c 'reap skipped' "$logdir/reap.log")" 1
+check "reap blocked by a live session without cwd: kills nothing" "$(cat "$sdir/killed" 2>/dev/null)" ''
+check "reap blocked: logs the blocking file" "$(grep -c 'blocked by 300.json (live session, no cwd)' "$logdir/reap.log")" 1
+
+printf '{"pid":555,"sessionId":"d"}' >"$sessions/300.json"
+reap ''
+check "reap past a dead session without cwd: the orphan is killed" "$(cut -d'|' -f1 "$sdir/killed")" 9
+rm -f "$sdir/killed"
+
+printf '{"pid":300,' >"$sessions/300.json"
+reap ''
+check "reap blocked by a recent unparsable file" "$(cat "$sdir/killed" 2>/dev/null)" ''
+touch -t 202001010000 "$sessions/300.json"
+reap ''
+check "reap past a day-old unparsable file" "$(cut -d'|' -f1 "$sdir/killed")" 9
+rm -f "$sdir/killed" "$sessions/300.json"
+
+jq() { return 2; }   # e.g. a session file removed between the glob and jq's read
+reap ''
+unset -f jq
+check "reap when jq fails: kills nothing" "$(cat "$sdir/killed" 2>/dev/null)" ''
+check "reap when jq fails: says so, not 'no session files'" \
+  "$(tail -1 "$logdir/reap.log" | grep -c 'blocked by a jq failure')" 1
+
+rm "$sessions"/*.json
+reap ''
+check "reap with no session file: kills nothing" "$(cat "$sdir/killed" 2>/dev/null)" ''
+check "no session files reads as a block too" \
+  "$(tail -1 "$logdir/reap.log" | grep -c 'reap skipped: blocked by no session files')" 1
+
+for i in $(seq 150); do echo "old $i"; done >"$logdir/reap.log"
+reap ''
+check "reap.log keeps the last 100 lines" "$(wc -l <"$logdir/reap.log" | tr -d ' ')" 100
+check "reap.log: the newest line is the last" "$(tail -1 "$logdir/reap.log" | grep -c 'blocked by no session files')" 1
 
 exit $fail

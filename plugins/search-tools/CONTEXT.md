@@ -9,7 +9,7 @@ The directory a tgrep server indexes and serves; the project directory of the se
 _Avoid_: repo, project, workspace
 
 **Server**:
-A running `tgrep serve <root>` process. Each root shows up as two processes (the scoop shim and the real exe); both are the same server.
+A running `tgrep serve <root>` process. On Windows each root shows up as two processes (the scoop shim and the real exe); both are the same server.
 _Avoid_: watcher, daemon
 
 **Live session**:
@@ -26,6 +26,10 @@ _Avoid_: stale server, dead server
 **Reap**:
 To kill every orphan server on the machine.
 _Avoid_: cleanup, sweep
+
+**Blocking session file**:
+A session file that might belong to a live session but cannot be read: its pid is live and its cwd unreadable, or it has no readable pid and was modified within the last day. While one exists, nothing is reaped.
+_Avoid_: bad file, corrupt session
 
 **Opt-in / Opt-out**:
 A per-root override of the file-count threshold: opted-in roots are always served, opted-out roots never are. Opt-out wins.
