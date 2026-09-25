@@ -14,7 +14,7 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 
 The session files are a Claude Code-internal format, and misreading one would make its server look orphaned. So nothing is reaped while a *blocking session file* exists: one whose pid is live but whose `cwd` cannot be read, or one without a readable pid modified within the last day. An unreadable file of a dead session, or a day-old broken one, is ignored. No `~/.claude/sessions` or no file in it also blocks. Blocked reaps go to `$CLAUDE_PLUGIN_DATA/logs/reap.log` (last 100 lines), and `/search-tools:tgrep status` ends with `reap: OK` or `reap: blocked by …` (a file and its reason, no session files, or a jq failure).
 
-Silently does nothing when `tgrep` is missing. Per OS:
+Silently does nothing when `tgrep` is missing; `/search-tools:healthcheck` lists what is. Per OS:
 
 | OS | Needs on `PATH` | Paths compare |
 |---|---|---|
@@ -53,6 +53,7 @@ Before the first `tgrep` or `ast-grep` call in a session, load the `search-tools
 
 - `search-tools:reference` (model-invoked) — flags and gotchas: why a search brute-forced, `$$$` metavariables, `-r` vs `-U`, semble `content=` modes.
 - `/search-tools:tgrep [on | off | status | reap]` — `on` opts the current repo in (builds the index, serves now, any size); `off` opts it out (stops the server, deletes `.tgrep/`, skipped on every session start until `on`); `status` (default) is the health check: policy, server state, whether a search from the root actually hits the server, log tail, every server on the machine; `reap` sweeps servers no live session uses.
+- `/search-tools:healthcheck` — checks that the hook dependencies for this OS (table above, plus `tgrep`) and the routed tools (`rg`, `ast-grep`, `semble` + MCP) are installed, with an install line for each gap.
 
 ## Knobs
 
@@ -69,8 +70,10 @@ Opt-in / opt-out state: `<root>/.tgrep/` present = in; a line in `$CLAUDE_PLUGIN
 hooks/hooks.json                SessionStart / SessionEnd / PreToolUse(Bash)
 scripts/tgrep-serve.sh          start | stop | on | off | status | reap
 scripts/grep-guard.sh           PreToolUse guard
+scripts/healthcheck.sh          /search-tools:healthcheck
 skills/reference/SKILL.md       search-tools:reference
 skills/tgrep/SKILL.md           /search-tools:tgrep
+skills/healthcheck/SKILL.md     /search-tools:healthcheck
 tests/orphans.sh                orphan-server decision, table-driven
 CONTEXT.md                      glossary: root, live session, orphan server, reap
 ```

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+- `/search-tools:healthcheck`: checks the hook dependencies for the current OS and the routed tools (`rg`, `ast-grep`, `semble` and its MCP server), prints an install line for anything missing, and flags versions that differ from the ones the reference skill was verified against. Exits 1 when a hook dependency is missing.
+- `/search-tools:tgrep on` no longer exits 1 when the server it just spawned has not registered yet.
+
 ## 1.3.1
 - Fix: 1.3.0's session-file guard stopped all reaping for good as soon as one session file was unreadable. Now only a *blocking session file* stops it: a live pid whose `cwd` cannot be read, or no readable pid and modified within a day. A dead session's broken file and day-old leftovers are ignored. An empty or truncated file no longer hides the others (each file is parsed on its own).
 - `/search-tools:tgrep status` ends with `reap: OK` or `reap: blocked by …` (the blocking file and why, no session files, or a jq failure).

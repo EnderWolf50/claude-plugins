@@ -298,7 +298,9 @@ main() {
     [ -d "$root/.tgrep" ] || tgrep index "$root" >/dev/null 2>&1
     echo "opted in: $root (index at $root/.tgrep)"
     serve_now
-    [ -n "$(server_pid)" ] && echo "server running (pid $(server_pid))"
+    # A just-spawned server may not have registered yet; that is not a failure.
+    pid="$(server_pid)"
+    if [ -n "$pid" ]; then echo "server running (pid $pid)"; fi
     ;;
 
   off)
