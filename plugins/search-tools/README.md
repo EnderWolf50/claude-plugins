@@ -8,7 +8,7 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 |---|---|
 | `SessionStart` | Reaps orphaned servers, then starts `tgrep serve <root>` when the repo is opted in (`.tgrep/` exists) or has >= 5000 text files and is not opted out |
 | `SessionEnd` | Kills every server whose root no other live session has as cwd |
-| `PreToolUse` (Bash) | Refuses tree searches via grep — `grep -r`/`-R`/`--recursive` (also `egrep`/`fgrep`) and `find … \| xargs grep` — with a one-line reason pointing at `rg`. grep on a single file or a stream, `git grep`, `rg`, `tgrep`, `ast-grep` pass. Performance only, not style. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
+| `PreToolUse` (Bash) | Runs a tree search via grep as rg: a command that is one `grep -r`/`-R`/`--recursive` (also `egrep`/`fgrep`) is rewritten to the matching `rg` command, which still goes through the normal permission checks, and the agent is told what ran and that rg skips ignored and hidden files. A recursive grep inside a pipeline or compound command, one with a flag rg has no exact match for, and `find … \| xargs grep` are refused with a one-line reason pointing at `rg`. grep on a single file or a stream, `git grep`, `rg`, `tgrep`, `ast-grep` pass. Performance only, not style. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 
@@ -42,7 +42,7 @@ Route by what the question asks for:
 
 | Ask | Tool |
 |---|---|
-| **Intent** — where is X implemented, how does Y work | semble (`mcp__semble__search`; CLI `semble search "<query>" <repo>`) |
+| **Intent** — where is X implemented, how does Y work | semble (`semble search "<query>" <repo>`) |
 | **Literal** — every occurrence of a string or regex, all callers of a symbol | `rg`. Large repo (this plugin runs `tgrep serve` for it): `tgrep` from `<root>` with the same flags |
 | **Shape** — a construct with variable parts (`foo($$$ARGS)`), a mechanical rewrite | `ast-grep run -p '<pattern>' -l <lang>`; `-r '<fix>'` shows a diff, `-U` applies it |
 
@@ -53,7 +53,7 @@ Before the first `tgrep` or `ast-grep` call in a session, load the `search-tools
 
 - `search-tools:reference` (model-invoked) — flags and gotchas: why a search brute-forced, `$$$` metavariables, `-r` vs `-U`, semble `content=` modes.
 - `/search-tools:tgrep [on | off | status | reap]` — `on` opts the current repo in (builds the index, serves now, any size); `off` opts it out (stops the server, deletes `.tgrep/`, skipped on every session start until `on`); `status` (default) is the health check: policy, server state, whether a search from the root actually hits the server, log tail, every server on the machine; `reap` sweeps servers no live session uses.
-- `/search-tools:healthcheck` — checks that the hook dependencies for this OS (table above, plus `tgrep`) and the routed tools (`rg`, `ast-grep`, `semble` + MCP) are installed, with an install line for each gap.
+- `/search-tools:healthcheck` — checks that the hook dependencies for this OS (table above, plus `tgrep`) and the routed tools (`rg`, `ast-grep`, `semble`) are installed, with an install line for each gap.
 
 ## Knobs
 
@@ -82,8 +82,9 @@ CONTEXT.md                      glossary: root, live session, orphan server, rea
 
 ```
 bash plugins/search-tools/tests/orphans.sh
+bash plugins/search-tools/tests/grep-guard.sh
 ```
 
-Runs on every supported OS (fixtures follow `$OSTYPE`); CI runs it on Ubuntu, macOS and Windows on every push. Sources `tgrep-serve.sh` for its functions; starts and kills nothing.
+`grep-guard.sh` pins each Bash command to allow, deny, or the exact rg it is rewritten to. Both run on every supported OS (fixtures follow `$OSTYPE`); CI runs them on Ubuntu, macOS and Windows on every push. `orphans.sh` sources `tgrep-serve.sh` for its functions; neither starts nor kills anything.
 
 Logs: `$CLAUDE_PLUGIN_DATA/logs/<root>.log`, skipped reaps in `$CLAUDE_PLUGIN_DATA/logs/reap.log`. Opt-outs: `$CLAUDE_PLUGIN_DATA/opt-out`.

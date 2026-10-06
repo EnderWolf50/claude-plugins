@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+- The Bash guard rewrites a command that is one recursive grep to the matching rg command and lets it run, instead of refusing it and costing a retry. No permission decision is made, so the rewritten command still goes through the permission rules (a `Bash(rg:*)` deny still blocks it). The agent is told what ran and that rg skips .gitignore'd and hidden files (`-uu` includes them). A recursive grep inside a pipeline or compound command, with a flag rg has no exact match for (`-e`, `-q`, ...), and `xargs grep` are still refused.
+- semble is routed through its CLI. The reference skill leads with `semble search` / `semble find-related` and lists the MCP tools only for setups that register a semble MCP server; the healthcheck no longer looks for one and verifies semble 0.6.1.
+
 ## 1.3.3
 - Fix: the Bash guard refused commands that only mention a recursive grep as data, such as `python -c "print('grep -r')"`, a commit message, or a script fed through a heredoc. Heredoc bodies and quoted strings are now left out before matching. New `tests/grep-guard.sh`, run in CI.
 

@@ -25,10 +25,10 @@ Routing (which tool for which ask) lives in your `CLAUDE.md`; this file holds wh
 - `ast-grep outline <path>` lists symbols, imports, exports and members — a file's shape without reading it.
 - `--json=stream` for machine-readable output.
 
-## semble 0.6.0 — semantic search
+## semble 0.6.1 — semantic search
 
-- MCP: `mcp__semble__search(query, repo, content?)`, `mcp__semble__find_related(file_path, line, repo, content?)`. `repo` is the project root, or an explicit https URL for a remote repo.
-- CLI: `semble search "<query>" <repo> [--content docs|config|all] [--top-k N] [--max-snippet-lines N]`; `semble find-related <file> <line> <repo>`.
+- CLI: `semble search "<query>" <repo> [--content docs|config|all] [--top-k N] [--max-snippet-lines N]`; `semble find-related <file> <line> <repo>`. `<repo>` is the project root or a git URL; several paths search related repos together.
+- MCP, only where a semble MCP server is registered (`semble install --type mcp`): `mcp__semble__search(query, repo, content?)`, `mcp__semble__find_related(file_path, line, repo, content?)`.
 - Hits carry ~10 lines of context (signature + first body lines): enough to confirm the location and go read there.
 
 ## ripgrep 15.2.0
