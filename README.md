@@ -10,8 +10,9 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 |---|---|---|
 | [win-toast](plugins/win-toast/) | `claude plugin install win-toast@enderwolf50` | Windows toast notifications with click-to-focus for Windows Terminal |
 | [search-tools](plugins/search-tools/) | `claude plugin install search-tools@enderwolf50` | keeps a `tgrep serve` alive only while a session uses a large repo; runs `grep -r` as `rg`; reference skill for tgrep / ast-grep / semble / ripgrep |
+| [typescript7-lsp](plugins/typescript7-lsp/) | `claude plugin install typescript7-lsp@enderwolf50 --scope project` | TypeScript 7 language server (`tsc --lsp --stdio`), per project, in place of `typescript-lsp` |
 
-win-toast is Windows-only; search-tools runs on Windows, Linux and macOS. Each plugin's README covers its own hooks, skills and knobs.
+win-toast is Windows-only; search-tools runs on Windows, Linux and macOS; typescript7-lsp needs Node and a project on TypeScript 7. Each plugin's README covers its own hooks, skills and knobs.
 
 ## Layout
 
