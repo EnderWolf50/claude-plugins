@@ -5,6 +5,13 @@ on:
   pull_request:
 
 jobs:
+  versions:
+    # marketplace.json, each plugin.json and each CHANGELOG.md name the same version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash .github/check-versions.sh
+
   search-tools:
     strategy:
       fail-fast: false

@@ -18,6 +18,7 @@ win-toast is Windows-only; search-tools runs on Windows, Linux and macOS; typesc
 
 ```
 .claude-plugin/marketplace.json   catalog — every plugin is "./plugins/<name>"
+.github/check-versions.sh         CI: each plugin's version matches across marketplace.json, plugin.json and CHANGELOG.md
 plugins/<name>/                   a plugin: .claude-plugin/plugin.json, hooks/, scripts/, skills/, tests/, README, CHANGELOG, CONTEXT.md (glossary)
 CONTEXT-MAP.md                    index of the per-plugin glossaries
 ```
