@@ -39,6 +39,21 @@
         "hooks"
       ],
       "category": "productivity"
+    },
+    {
+      "name": "typescript7-lsp",
+      "source": "./plugins/typescript7-lsp",
+      "description": "TypeScript 7 language server: the project's own tsc --lsp --stdio, for projects past typescript-lsp's tsserver",
+      "version": "1.0.0",
+      "author": {
+        "name": "EnderWolf50"
+      },
+      "keywords": [
+        "typescript",
+        "lsp",
+        "typescript-go"
+      ],
+      "category": "development"
     }
   ]
 }
