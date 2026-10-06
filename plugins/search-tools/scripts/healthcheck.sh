@@ -53,16 +53,7 @@ echo
 echo "routed (search tools):"
 check rg             routed   15.2.0 'scoop install ripgrep / apt install ripgrep / brew install ripgrep'  rg --version
 check ast-grep       routed   0.45.1 'scoop install ast-grep / brew install ast-grep / cargo install ast-grep' ast-grep --version
-check semble         routed   0.6.0  'uv tool install semble' semble --version
-
-# semble is routed to over MCP first; the CLI alone is not enough for mcp__semble__*.
-echo
-if [ -f "$HOME/.claude.json" ] && command -v jq >/dev/null 2>&1 &&
-   jq -e '[.. | objects | .mcpServers? // empty | keys[]] | index("semble")' "$HOME/.claude.json" >/dev/null 2>&1; then
-  echo "semble MCP: registered in ~/.claude.json"
-else
-  echo "semble MCP: not found in ~/.claude.json (fine if a plugin provides it; else \`semble install --agent claude --type mcp\`)"
-fi
+check semble         routed   0.6.1  'uv tool install semble' semble --version
 
 echo
 if [ "$fail" = 0 ]; then echo "result: OK"; else echo "result: FAIL — a required tool is missing, the hooks cannot run"; fi

@@ -9,7 +9,7 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 | Plugin | Install | What |
 |---|---|---|
 | [win-toast](plugins/win-toast/) | `claude plugin install win-toast@enderwolf50` | Windows toast notifications with click-to-focus for Windows Terminal |
-| [search-tools](plugins/search-tools/) | `claude plugin install search-tools@enderwolf50` | keeps a `tgrep serve` alive only while a session uses a large repo; refuses `grep -r` in favour of `rg`; reference skill for tgrep / ast-grep / semble / ripgrep |
+| [search-tools](plugins/search-tools/) | `claude plugin install search-tools@enderwolf50` | keeps a `tgrep serve` alive only while a session uses a large repo; runs `grep -r` as `rg`; reference skill for tgrep / ast-grep / semble / ripgrep |
 
 win-toast is Windows-only; search-tools runs on Windows, Linux and macOS. Each plugin's README covers its own hooks, skills and knobs.
 

@@ -1,5 +1,5 @@
 {
-  "description": "tgrep serve lifecycle (SessionStart start / SessionEnd stop) and a Bash guard that refuses tree searches via grep (grep -r, xargs grep) in favour of rg",
+  "description": "tgrep serve lifecycle (SessionStart start / SessionEnd stop) and a Bash guard that runs tree searches via grep (grep -r) as rg and refuses the rest (xargs grep)",
   "hooks": {
     "SessionStart": [
       {
