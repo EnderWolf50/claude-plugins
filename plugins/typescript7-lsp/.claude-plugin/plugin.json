@@ -1,6 +1,6 @@
 {
   "name": "typescript7-lsp",
-  "description": "TypeScript 7 language server for code intelligence: runs the project's own `tsc --lsp --stdio`. TypeScript 7 ships no tsserver, so typescript-language-server (the typescript-lsp plugin) cannot serve it.",
+  "description": "TypeScript 7 language server for code intelligence: runs the project's own `tsc --lsp --stdio` through `bun run`. TypeScript 7 ships no tsserver, so typescript-language-server (the typescript-lsp plugin) cannot serve it.",
   "version": "1.0.0",
   "author": {
     "name": "EnderWolf50"
@@ -9,8 +9,8 @@
   "keywords": ["typescript", "lsp", "typescript-go", "tsgo"],
   "lspServers": {
     "typescript7": {
-      "command": "npx",
-      "args": ["--no-install", "tsc", "--lsp", "--stdio"],
+      "command": "bun",
+      "args": ["run", "tsc", "--lsp", "--stdio"],
       "extensionToLanguage": {
         ".ts": "typescript",
         ".tsx": "typescriptreact",
