@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.3
+- Fix: the Bash guard refused commands that only mention a recursive grep as data, such as `python -c "print('grep -r')"`, a commit message, or a script fed through a heredoc. Heredoc bodies and quoted strings are now left out before matching. New `tests/grep-guard.sh`, run in CI.
+
 ## 1.3.2
 - `/search-tools:healthcheck`: checks the hook dependencies for the current OS and the routed tools (`rg`, `ast-grep`, `semble` and its MCP server), prints an install line for anything missing, and flags versions that differ from the ones the reference skill was verified against. Exits 1 when a hook dependency is missing.
 - `/search-tools:tgrep on` no longer exits 1 when the server it just spawned has not registered yet.

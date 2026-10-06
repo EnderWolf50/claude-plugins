@@ -14,9 +14,21 @@ command -v jq >/dev/null 2>&1 || exit 0
 cmd="$(jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -n "$cmd" ] || exit 0
 
-verdict="$(printf '%s' "$cmd" | awk -v RS='\001' '
+# Only what runs is checked: heredoc bodies are dropped, then quoted strings emptied, so
+# `python -c "print('grep -r')"` or a script fed through <<'EOF' is data, not a search.
+verdict="$(printf '%s\n' "$cmd" | awk '
+  inhd { t = $0; if (strip) sub(/^\t+/, "", t); if (t == delim) inhd = 0; next }
+  {
+    print
+    if (match($0, /<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*["\047]?/) && substr($0, RSTART - 1, 1) != "<") {
+      d = substr($0, RSTART, RLENGTH); strip = (d ~ /^<<-/)
+      sub(/^<<-?[ \t]*/, "", d); gsub(/["\047]/, "", d); delim = d; inhd = 1
+    }
+  }' | awk -v RS='\001' '
 {
   s = $0
+  gsub(/\047[^\047]*\047/, "\047\047", s)
+  gsub(/"([^"\\]|\\.)*"/, "\"\"", s)
   while (match(s, /[ef]?grep([^A-Za-z0-9_-]|$)/)) {
     pre  = substr(s, 1, RSTART - 1)
     prev = (RSTART > 1) ? substr(s, RSTART - 1, 1) : ""

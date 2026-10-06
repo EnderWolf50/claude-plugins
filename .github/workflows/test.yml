@@ -16,7 +16,7 @@ jobs:
       # The shells the hooks run under: /bin/bash is the system bash (3.2 on macOS;
       # plain `bash` there is Homebrew's 5.x), Git Bash on Windows.
       - if: runner.os != 'Windows'
-        run: /bin/bash --version | head -1 && /bin/bash plugins/search-tools/tests/orphans.sh
+        run: /bin/bash --version | head -1 && /bin/bash plugins/search-tools/tests/orphans.sh && /bin/bash plugins/search-tools/tests/grep-guard.sh
       - if: runner.os == 'Windows'
-        run: bash plugins/search-tools/tests/orphans.sh
+        run: bash plugins/search-tools/tests/orphans.sh && bash plugins/search-tools/tests/grep-guard.sh
         shell: bash
