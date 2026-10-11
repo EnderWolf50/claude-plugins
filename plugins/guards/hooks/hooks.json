@@ -1,0 +1,17 @@
+{
+  "description": "Deny whole-tree git staging (git add -A/., git commit -a) and chezmoi apply --force without a target, naming the narrower command",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/bash-guard.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
