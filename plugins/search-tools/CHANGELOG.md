@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0
+- The Bash guard rewrites a recursive grep inside a pipeline or compound command too: only that segment becomes rg, the rest runs as written (`cat f; grep -rn x src | head` runs as `cat f; rg -n x src | head`). Before, the whole command was refused and its other parts were lost with it.
+- `grep -r` whose path arguments are all existing regular files runs unchanged: on a file it is plain grep.
+- The rewrite now also maps flags placed after the pattern (`grep -rn x --include=*.go .`) and keeps redirections (`2>/dev/null`, `> out.txt`).
+- Fix: a basic-regex pattern was passed to rg as is, so `grep -r 'a\|b'` searched for a literal `a|b` and found nothing. `\|` `\(` `\)` `\{` `\}` `\+` `\?` now become rg operators, bare `| ( ) { } + ?` are escaped, and `\<` `\>` become `\b`. A bracket expression rg would read differently (holding `\`) is refused.
+- Still refused: a recursive grep with `-e`, `-q` or another flag rg has no exact match for, a `$variable` pattern, no path right after a pipe (rg would read stdin), command substitution, a command with a heredoc, and `xargs grep`.
+
 ## 1.4.0
 - The Bash guard rewrites a command that is one recursive grep to the matching rg command and lets it run, instead of refusing it and costing a retry. No permission decision is made, so the rewritten command still goes through the permission rules (a `Bash(rg:*)` deny still blocks it). The agent is told what ran and that rg skips .gitignore'd and hidden files (`-uu` includes them). A recursive grep inside a pipeline or compound command, with a flag rg has no exact match for (`-e`, `-q`, ...), and `xargs grep` are still refused.
 - semble is routed through its CLI. The reference skill leads with `semble search` / `semble find-related` and lists the MCP tools only for setups that register a semble MCP server; the healthcheck no longer looks for one and verifies semble 0.6.1.

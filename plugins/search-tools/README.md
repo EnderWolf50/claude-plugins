@@ -8,7 +8,7 @@ Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a runnin
 |---|---|
 | `SessionStart` | Reaps orphaned servers, then starts `tgrep serve <root>` when the repo is opted in (`.tgrep/` exists) or has >= 5000 text files and is not opted out |
 | `SessionEnd` | Kills every server whose root no other live session has as cwd |
-| `PreToolUse` (Bash) | Runs a tree search via grep as rg: a command that is one `grep -r`/`-R`/`--recursive` (also `egrep`/`fgrep`) is rewritten to the matching `rg` command, which still goes through the normal permission checks, and the agent is told what ran and that rg skips ignored and hidden files. A recursive grep inside a pipeline or compound command, one with a flag rg has no exact match for, and `find … \| xargs grep` are refused with a one-line reason pointing at `rg`. grep on a single file or a stream, `git grep`, `rg`, `tgrep`, `ast-grep` pass. Performance only, not style. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
+| `PreToolUse` (Bash) | Runs a tree search via grep as rg: every `grep -r`/`-R`/`--recursive` (also `egrep`/`fgrep`) in the command, including inside a pipeline or compound command, is rewritten in place to the matching `rg` command (basic-regex `\|` and friends translated); the other parts run as written, the result still goes through the normal permission checks, and the agent is told what ran and that rg skips ignored and hidden files. A `grep -r` whose paths are all existing files runs unchanged. One with a flag rg has no exact match for, a `$variable` pattern, no path after a pipe, or a heredoc in the command, and `find … \| xargs grep` are refused with a one-line reason pointing at `rg`. grep on a single file or a stream, `git grep`, `rg`, `tgrep`, `ast-grep` pass. Performance only, not style. `SEARCH_TOOLS_ALLOW_GREP=1` disables it |
 
 "Live session" = a `~/.claude/sessions/<pid>.json` whose pid is in the process table, so a killed terminal or a crash never pins a server: the next session start or end anywhere reaps it. Killing is safe — `tgrep serve` reconciles the on-disk index against the tree on restart.
 
@@ -75,6 +75,7 @@ skills/reference/SKILL.md       search-tools:reference
 skills/tgrep/SKILL.md           /search-tools:tgrep
 skills/healthcheck/SKILL.md     /search-tools:healthcheck
 tests/orphans.sh                orphan-server decision, table-driven
+tests/grep-guard.sh             Bash guard verdicts: allow, deny, rewrite
 CONTEXT.md                      glossary: root, live session, orphan server, reap
 ```
 
