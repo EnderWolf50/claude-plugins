@@ -5,7 +5,7 @@ Extend a skill you do not own (a plugin's, a shared repo's) without editing it. 
 | Hook | Fires when | Skill name from |
 |---|---|---|
 | `PostToolUse` (`Skill`) | Claude invokes a skill | `tool_input.skill`, a `plugin:` prefix dropped (`search-tools:reference` → `reference`) |
-| `UserPromptSubmit` | you type `/S` or `/S args` | the first word of the prompt; `/S` later in the text does not count |
+| `UserPromptExpansion` | you type `/S` or `/S args` (this path skips the Skill tool) | `command_name`, a `plugin:` prefix dropped; a `/S` mentioned inside a prompt does not count |
 
 Lookup, in this order; every file found is injected:
 

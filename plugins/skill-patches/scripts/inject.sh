@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# PostToolUse (Skill) and UserPromptSubmit hook: when skill S runs, inject every S-patch/SKILL.md
+# PostToolUse (Skill) and UserPromptExpansion hook: when skill S runs, inject every S-patch/SKILL.md
 # (frontmatter stripped) as additionalContext. Global patches first, project patches last.
-#   Skill tool:       tool_input.skill, a `plugin:` prefix dropped
-#   UserPromptSubmit: a prompt that starts with /S
+#   Skill tool (model-invoked): tool_input.skill
+#   UserPromptExpansion (user typed /S): command_name
+# A `plugin:` prefix is dropped.
 # Silent (no output, exit 0) when no patch exists.
 
 set -u
@@ -10,8 +11,7 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 IFS=$'\t' read -r event name < <(jq -r '[
   .hook_event_name // "",
-  if .hook_event_name == "UserPromptSubmit"
-  then ((.prompt // "") | capture("^/(?<s>[^\\s/]+)(\\s|$)").s // "")
+  if .hook_event_name == "UserPromptExpansion" then (.command_name // "") | ltrimstr("/")
   else (.tool_input.skill // "") end
 ] | @tsv' 2>/dev/null | tr -d '\r')
 name="${name##*:}"

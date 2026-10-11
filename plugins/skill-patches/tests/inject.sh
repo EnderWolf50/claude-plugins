@@ -30,8 +30,9 @@ check() {
   else printf 'FAIL %s\n  want: %s\n  got:  %s\n' "$1" "$3" "$got"; fail=1; fi
 }
 skill() { jq -nc --arg s "$1" '{hook_event_name: "PostToolUse", tool_name: "Skill", tool_input: {skill: $s}}'; }
-# MSYS_NO_PATHCONV: Git Bash would turn a /tdd argument into a Windows path for jq.exe
-prompt() { MSYS_NO_PATHCONV=1 jq -nc --arg p "$1" '{hook_event_name: "UserPromptSubmit", prompt: $p}'; }
+# typed /<command> <args>: the UserPromptExpansion input Claude Code sends
+typed() { MSYS_NO_PATHCONV=1 jq -nc --arg n "$1" --arg a "$2" \
+  '{hook_event_name: "UserPromptExpansion", expansion_type: "slash_command", command_name: $n, command_args: $a, prompt: ("/" + $n + " " + $a)}'; }
 both=$'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen running tdd: GLOBAL\n\nWhen running tdd: PROJECT'
 
 check "no patch: silent"            "$(skill grilling)"                ""
@@ -39,12 +40,12 @@ check "global and project, in order" "$(skill tdd)"                    "$both"
 check "project only"                "$(skill review)"                  $'Patch for skill review (overrides the skill where they conflict):\n\nWhen running review: PROJECT-ONLY'
 check "global (~/.agents) only, plugin prefix dropped" "$(skill search-tools:reference)" \
   $'Patch for skill reference (overrides the skill where they conflict):\n\nWhen running reference: AGENTS-GLOBAL'
-check "/skill args prompt"          "$(prompt '/tdd fix the parser')"  "$both"
-check "/skill alone"                "$(prompt '/tdd')"                 "$both"
-check "/plugin:skill prompt"        "$(prompt '/x:review now')"        $'Patch for skill review (overrides the skill where they conflict):\n\nWhen running review: PROJECT-ONLY'
-check "mid-text /skill: silent"     "$(prompt 'please run /tdd on this')" ""
-check "plain prompt: silent"        "$(prompt 'hello')"                ""
-check "path-like prompt: silent"    "$(prompt '/tdd/../x')"             ""
+check "typed /skill args"           "$(typed tdd 'fix the parser')"    "$both"
+check "typed /skill alone"          "$(typed tdd '')"                  "$both"
+check "typed /plugin:skill"         "$(typed x:review now)"            $'Patch for skill review (overrides the skill where they conflict):\n\nWhen running review: PROJECT-ONLY'
+check "typed command, no patch: silent" "$(typed clear '')"            ""
+check "path-like command: silent"   "$(typed 'tdd/../x' '')"           ""
+check "UserPromptSubmit mentioning /tdd: silent" "$(MSYS_NO_PATHCONV=1 jq -nc '{hook_event_name: "UserPromptSubmit", prompt: "/tdd and please run /tdd"}')" ""
 check "traversal name: silent"      "$(skill '../tdd')"                ""
 CLAUDE_PROJECT_DIR="" check "unset project dir: global only" "$(skill tdd)" \
   $'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen running tdd: GLOBAL'

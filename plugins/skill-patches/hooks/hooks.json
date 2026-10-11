@@ -1,5 +1,5 @@
 {
-  "description": "Inject <skill>-patch/SKILL.md when a skill runs: model-invoked (PostToolUse on Skill) or user-typed (/skill prompt)",
+  "description": "Inject <skill>-patch/SKILL.md when a skill runs: model-invoked (PostToolUse on Skill) or user-typed (/skill, UserPromptExpansion)",
   "hooks": {
     "PostToolUse": [
       {
@@ -13,7 +13,7 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
+    "UserPromptExpansion": [
       {
         "hooks": [
           {
