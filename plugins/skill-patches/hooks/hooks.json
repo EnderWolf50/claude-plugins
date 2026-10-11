@@ -1,0 +1,28 @@
+{
+  "description": "Inject <skill>-patch/SKILL.md when a skill runs: model-invoked (PostToolUse on Skill) or user-typed (/skill prompt)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/inject.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/inject.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
