@@ -12,6 +12,7 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 | [search-tools](plugins/search-tools/) | `claude plugin install search-tools@enderwolf50` | keeps a `tgrep serve` alive only while a session uses a large repo; runs `grep -r` as `rg`; reference skill for tgrep / ast-grep / semble / ripgrep |
 | [typescript7-lsp](plugins/typescript7-lsp/) | `claude plugin install typescript7-lsp@enderwolf50 --scope project` | TypeScript 7 language server (`tsc --lsp --stdio`), per project, in place of `typescript-lsp` |
 | [skill-patches](plugins/skill-patches/) | `claude plugin install skill-patches@enderwolf50` | extend someone else's skill without editing it: injects your `<skill>-patch` when the skill runs |
+| [guards](plugins/guards/) | `claude plugin install guards@enderwolf50` | denies `git add -A`, `git commit -a` and `chezmoi apply --force` without a target, naming the narrower command |
 
 win-toast is Windows-only; search-tools runs on Windows, Linux and macOS; typescript7-lsp needs Bun and a project on TypeScript 7. Each plugin's README covers its own hooks, skills and knobs.
 

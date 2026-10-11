@@ -69,6 +69,22 @@
         "hooks"
       ],
       "category": "productivity"
+    },
+    {
+      "name": "guards",
+      "source": "./plugins/guards",
+      "description": "Denies git add -A / git commit -a and chezmoi apply --force without a target, naming the narrower command",
+      "version": "1.0.0",
+      "author": {
+        "name": "EnderWolf50"
+      },
+      "keywords": [
+        "git",
+        "chezmoi",
+        "guard",
+        "hooks"
+      ],
+      "category": "productivity"
     }
   ]
 }

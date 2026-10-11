@@ -41,3 +41,17 @@ jobs:
       - if: runner.os == 'Windows'
         run: bash plugins/skill-patches/tests/inject.sh
         shell: bash
+
+  guards:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: runner.os != 'Windows'
+        run: /bin/bash plugins/guards/tests/bash-guard.sh
+      - if: runner.os == 'Windows'
+        run: bash plugins/guards/tests/bash-guard.sh
+        shell: bash
