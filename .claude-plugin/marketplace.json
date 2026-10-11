@@ -54,6 +54,21 @@
         "typescript-go"
       ],
       "category": "development"
+    },
+    {
+      "name": "skill-patches",
+      "source": "./plugins/skill-patches",
+      "description": "Extend someone else's skill without editing it: injects <skill>-patch/SKILL.md when the skill runs",
+      "version": "1.0.0",
+      "author": {
+        "name": "EnderWolf50"
+      },
+      "keywords": [
+        "skills",
+        "patch",
+        "hooks"
+      ],
+      "category": "productivity"
     }
   ]
 }
