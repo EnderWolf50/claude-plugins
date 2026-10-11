@@ -30,7 +30,8 @@ check() {
   else printf 'FAIL %s\n  want: %s\n  got:  %s\n' "$1" "$3" "$got"; fail=1; fi
 }
 skill() { jq -nc --arg s "$1" '{hook_event_name: "PostToolUse", tool_name: "Skill", tool_input: {skill: $s}}'; }
-prompt() { jq -nc --arg p "$1" '{hook_event_name: "UserPromptSubmit", prompt: $p}'; }
+# MSYS_NO_PATHCONV: Git Bash would turn a /tdd argument into a Windows path for jq.exe
+prompt() { MSYS_NO_PATHCONV=1 jq -nc --arg p "$1" '{hook_event_name: "UserPromptSubmit", prompt: $p}'; }
 both=$'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen running tdd: GLOBAL\n\nWhen running tdd: PROJECT'
 
 check "no patch: silent"            "$(skill grilling)"                ""
