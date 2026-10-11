@@ -23,9 +23,14 @@ if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ "$CLAUDE_PROJECT_DIR" != "$HOME" ]; the
 fi
 
 body=""
+seen=""
 for d in "${dirs[@]}"; do
   f="$d/$name-patch/SKILL.md"
   [ -f "$f" ] || continue
+  # ~/.claude/skills/* is often a symlink to ~/.agents/skills/*: one file, injected once
+  real="$(cd "$(dirname "$f")" && pwd -P)/SKILL.md"
+  case "$seen" in *"|$real|"*) continue ;; esac
+  seen="$seen|$real|"
   # drop a leading --- frontmatter block
   part="$(awk 'NR == 1 && /^---[ \t\r]*$/ { fm = 1; next } fm && /^---[ \t\r]*$/ { fm = 0; next } !fm' "$f")"
   body="$body"$'\n\n'"$part"

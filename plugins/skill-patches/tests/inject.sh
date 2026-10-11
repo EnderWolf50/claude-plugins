@@ -16,6 +16,8 @@ patch "$HOME/.claude/skills" tdd "When running tdd: GLOBAL"
 patch "$CLAUDE_PROJECT_DIR/.claude/skills" tdd "When running tdd: PROJECT"
 patch "$CLAUDE_PROJECT_DIR/.agents/skills" review "When running review: PROJECT-ONLY"
 patch "$HOME/.agents/skills" reference "When running reference: AGENTS-GLOBAL"
+patch "$HOME/.agents/skills" linked "When running linked: ONCE"
+ln -s "$HOME/.agents/skills/linked-patch" "$HOME/.claude/skills/linked-patch"
 
 fail=0
 # check <name> <event json> <expected additionalContext, or empty for no output>
@@ -37,6 +39,7 @@ both=$'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen ru
 
 check "no patch: silent"            "$(skill grilling)"                ""
 check "global and project, in order" "$(skill tdd)"                    "$both"
+check "symlinked global: injected once" "$(skill linked)"            $'Patch for skill linked (overrides the skill where they conflict):\n\nWhen running linked: ONCE'
 check "project only"                "$(skill review)"                  $'Patch for skill review (overrides the skill where they conflict):\n\nWhen running review: PROJECT-ONLY'
 check "global (~/.agents) only, plugin prefix dropped" "$(skill search-tools:reference)" \
   $'Patch for skill reference (overrides the skill where they conflict):\n\nWhen running reference: AGENTS-GLOBAL'
