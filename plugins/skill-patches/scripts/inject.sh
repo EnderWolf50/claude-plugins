@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse (Skill) and UserPromptExpansion hook: when skill S runs, inject every S-patch/SKILL.md
+# PostToolUse (Skill) and UserPromptExpansion hook: when skill S runs, inject every S.patch/SKILL.md
 # (frontmatter stripped) as additionalContext. Global patches first, project patches last.
 #   Skill tool (model-invoked): tool_input.skill
 #   UserPromptExpansion (user typed /S): command_name
@@ -25,7 +25,7 @@ fi
 body=""
 seen=""
 for d in "${dirs[@]}"; do
-  f="$d/$name-patch/SKILL.md"
+  f="$d/$name.patch/SKILL.md"
   [ -f "$f" ] || continue
   # ~/.claude/skills/* is often a symlink to ~/.agents/skills/*: one file, injected once
   real="$(cd "$(dirname "$f")" && pwd -P)/SKILL.md"
