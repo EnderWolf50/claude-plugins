@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+- A patch is `S.patch/SKILL.md` (frontmatter `name: S.patch`), was `S-patch`. Rename existing patch directories; `S-patch` is no longer read.
+
 ## 1.0.1
 - A patch reached through two paths that resolve to one file (`~/.claude/skills/<s>-patch` symlinked to `~/.agents/skills/<s>-patch`) is injected once.
 

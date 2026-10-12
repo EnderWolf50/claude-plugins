@@ -1,6 +1,6 @@
 # skill-patches
 
-Extend a skill you do not own (a plugin's, a shared repo's) without editing it. When skill `S` runs, this plugin injects your `S-patch` skill next to it, so your additions survive the skill's updates.
+Extend a skill you do not own (a plugin's, a shared repo's) without editing it. When skill `S` runs, this plugin injects your `S.patch` skill next to it, so your additions survive the skill's updates.
 
 | Hook | Fires when | Skill name from |
 |---|---|---|
@@ -9,20 +9,20 @@ Extend a skill you do not own (a plugin's, a shared repo's) without editing it. 
 
 Lookup, in this order; every file found is injected:
 
-1. `~/.claude/skills/S-patch/SKILL.md`
-2. `~/.agents/skills/S-patch/SKILL.md`
-3. `$CLAUDE_PROJECT_DIR/.claude/skills/S-patch/SKILL.md`
-4. `$CLAUDE_PROJECT_DIR/.agents/skills/S-patch/SKILL.md`
+1. `~/.claude/skills/S.patch/SKILL.md`
+2. `~/.agents/skills/S.patch/SKILL.md`
+3. `$CLAUDE_PROJECT_DIR/.claude/skills/S.patch/SKILL.md`
+4. `$CLAUDE_PROJECT_DIR/.agents/skills/S.patch/SKILL.md`
 
 The context Claude gets is `Patch for skill S (overrides the skill where they conflict):` followed by each patch body, frontmatter stripped. Project patches come last, so they win over global ones. No patch: the hook prints nothing and exits 0. Needs `bash` and `jq`.
 
 ## Write a patch
 
-Create `S-patch/SKILL.md` in one of the directories above, for example `~/.claude/skills/tdd-patch/SKILL.md`:
+Create `S.patch/SKILL.md` in one of the directories above, for example `~/.claude/skills/tdd.patch/SKILL.md`:
 
 ```markdown
 ---
-name: tdd-patch
+name: tdd.patch
 description: Patch for tdd: run the project's test script, not the runner directly
 disable-model-invocation: true
 user-invocable: false

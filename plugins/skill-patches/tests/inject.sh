@@ -9,15 +9,15 @@ tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 export HOME="$tmp/home" CLAUDE_PROJECT_DIR="$tmp/proj"
 
 patch() { # patch <skills dir> <skill> <body>
-  mkdir -p "$1/$2-patch"
-  printf -- '---\nname: %s-patch\ndescription: Patch for %s: test\n---\n%s\n' "$2" "$2" "$3" > "$1/$2-patch/SKILL.md"
+  mkdir -p "$1/$2.patch"
+  printf -- '---\nname: %s.patch\ndescription: Patch for %s: test\n---\n%s\n' "$2" "$2" "$3" > "$1/$2.patch/SKILL.md"
 }
 patch "$HOME/.claude/skills" tdd "When running tdd: GLOBAL"
 patch "$CLAUDE_PROJECT_DIR/.claude/skills" tdd "When running tdd: PROJECT"
 patch "$CLAUDE_PROJECT_DIR/.agents/skills" review "When running review: PROJECT-ONLY"
 patch "$HOME/.agents/skills" reference "When running reference: AGENTS-GLOBAL"
 patch "$HOME/.agents/skills" linked "When running linked: ONCE"
-ln -s "$HOME/.agents/skills/linked-patch" "$HOME/.claude/skills/linked-patch"
+ln -s "$HOME/.agents/skills/linked.patch" "$HOME/.claude/skills/linked.patch"
 
 fail=0
 # check <name> <event json> <expected additionalContext, or empty for no output>
@@ -40,7 +40,7 @@ both=$'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen ru
 check "no patch: silent"            "$(skill grilling)"                ""
 check "global and project, in order" "$(skill tdd)"                    "$both"
 # Git Bash on Windows copies on `ln -s` (no symlink without MSYS=winsymlinks), so the case only runs where a link exists
-if [ -L "$HOME/.claude/skills/linked-patch" ]; then
+if [ -L "$HOME/.claude/skills/linked.patch" ]; then
 check "symlinked global: injected once" "$(skill linked)"            $'Patch for skill linked (overrides the skill where they conflict):\n\nWhen running linked: ONCE'
 else echo "skip symlinked global: ln -s made a copy"; fi
 check "project only"                "$(skill review)"                  $'Patch for skill review (overrides the skill where they conflict):\n\nWhen running review: PROJECT-ONLY'
