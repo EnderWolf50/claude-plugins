@@ -13,6 +13,18 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/inject.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "UserPromptExpansion": [
       {
         "hooks": [

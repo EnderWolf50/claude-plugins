@@ -22,6 +22,12 @@ IFS=$'\x1f' read -r event tool name session < <(jq -r '[
 case "$session" in *[!A-Za-z0-9_-]*) session="" ;; esac
 marks="${TMPDIR:-/tmp}/skill-patches/$session"
 
+# SessionStart (compact): a compacted session may have lost what was injected, so inject again
+if [ "$event" = SessionStart ]; then
+  [ -z "$session" ] || rm -rf "$marks"
+  exit 0
+fi
+
 dirs=("$HOME/.claude/skills" "$HOME/.agents/skills")
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ "$CLAUDE_PROJECT_DIR" != "$HOME" ]; then
   dirs+=("$CLAUDE_PROJECT_DIR/.claude/skills" "$CLAUDE_PROJECT_DIR/.agents/skills")

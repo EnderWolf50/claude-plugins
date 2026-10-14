@@ -71,5 +71,7 @@ skill_s3="$(jq -nc '{hook_event_name: "PostToolUse", tool_name: "Skill", session
 check "skill run first"                   "$skill_s3"                        $'Patch for skill design (overrides the skill where they conflict):\n\nWhen running design: TOOLS'
 check "then its tool: already injected"   "$(tool $t s3)"                    ""
 check "no session id: injected"           "$(tool $t '')"                    "$(on_tool $t)"
+check "compact: silent"                   "$(jq -nc '{hook_event_name: "SessionStart", source: "compact", session_id: "s1"}')" ""
+check "after compact: injected again"     "$(tool $t s1)"                    "$(on_tool $t)"
 
 exit $fail

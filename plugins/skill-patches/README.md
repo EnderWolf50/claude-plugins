@@ -51,7 +51,7 @@ user-invocable: false
 ---
 ```
 
-On the first matching call in a session the patch is injected after the tool's result, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated. Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
+On the first matching call in a session the patch is injected after the tool's result, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated until the session is compacted (`SessionStart`, `compact`, clears the marks, since the summary may drop the patch). Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
 
 ## Install
 
