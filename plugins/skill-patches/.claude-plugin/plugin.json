@@ -1,7 +1,7 @@
 {
   "name": "skill-patches",
   "description": "Extend someone else's skill without editing it: when skill S runs (model-invoked, or typed as /S), the bodies of every S.patch/SKILL.md in ~/.claude/skills, ~/.agents/skills and the project's .claude/skills, .agents/skills are injected as context.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": {
     "name": "EnderWolf50"
   },

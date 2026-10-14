@@ -18,6 +18,9 @@ patch "$CLAUDE_PROJECT_DIR/.agents/skills" review "When running review: PROJECT-
 patch "$HOME/.agents/skills" reference "When running reference: AGENTS-GLOBAL"
 patch "$HOME/.agents/skills" linked "When running linked: ONCE"
 ln -s "$HOME/.agents/skills/linked.patch" "$HOME/.claude/skills/linked.patch"
+mkdir -p "$HOME/.agents/skills/design.patch"
+printf -- '---\nname: design.patch\npatch-tools: mcp__*tempad-dev__* mcp__other__read\n---\nWhen running design: TOOLS\n' > "$HOME/.agents/skills/design.patch/SKILL.md"
+export TMPDIR="$tmp/t"
 
 fail=0
 # check <name> <event json> <expected additionalContext, or empty for no output>
@@ -55,5 +58,18 @@ check "UserPromptSubmit mentioning /tdd: silent" "$(MSYS_NO_PATHCONV=1 jq -nc '{
 check "traversal name: silent"      "$(skill '../tdd')"                ""
 CLAUDE_PROJECT_DIR="" check "unset project dir: global only" "$(skill tdd)" \
   $'Patch for skill tdd (overrides the skill where they conflict):\n\nWhen running tdd: GLOBAL'
+
+# tool <tool_name> <session_id>
+tool() { jq -nc --arg t "$1" --arg s "$2" '{hook_event_name: "PostToolUse", tool_name: $t, session_id: $s, tool_input: {}}'; }
+on_tool() { printf 'Patch for skill design, injected on the first %s call (overrides the skill where they conflict):\n\nWhen running design: TOOLS' "$1"; }
+t=mcp__plugin_tempad-dev_tempad-dev__get_code
+check "patch-tools glob: injected"        "$(tool $t s1)"                    "$(on_tool $t)"
+check "patch-tools: once per session"     "$(tool $t s1)"                    ""
+check "patch-tools: second glob, new session" "$(tool mcp__other__read s2)"  "$(on_tool mcp__other__read)"
+check "unmatched MCP tool: silent"        "$(tool mcp__semble__search s4)"   ""
+skill_s3="$(jq -nc '{hook_event_name: "PostToolUse", tool_name: "Skill", session_id: "s3", tool_input: {skill: "tempad-dev:design"}}')"
+check "skill run first"                   "$skill_s3"                        $'Patch for skill design (overrides the skill where they conflict):\n\nWhen running design: TOOLS'
+check "then its tool: already injected"   "$(tool $t s3)"                    ""
+check "no session id: injected"           "$(tool $t '')"                    "$(on_tool $t)"
 
 exit $fail

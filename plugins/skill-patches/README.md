@@ -6,6 +6,7 @@ Extend a skill you do not own (a plugin's, a shared repo's) without editing it. 
 |---|---|---|
 | `PostToolUse` (`Skill`) | Claude invokes a skill | `tool_input.skill`, a `plugin:` prefix dropped (`search-tools:reference` → `reference`) |
 | `UserPromptExpansion` | you type `/S` or `/S args` (this path skips the Skill tool) | `command_name`, a `plugin:` prefix dropped; a `/S` mentioned inside a prompt does not count |
+| `PostToolUse` (`mcp__*`) | Claude first calls an MCP tool a patch names in `patch-tools:` (see [Inject on a tool call](#inject-on-a-tool-call)) | the patch's own directory name |
 
 Lookup, in this order; every file found is injected:
 
@@ -36,6 +37,21 @@ When running tdd:
 - `disable-model-invocation: true` and `user-invocable: false` keep the patch out of the skill listing and the `/` menu; it only ever arrives through this hook.
 - Write the body as "When running S:" steps: additions, or overrides of named steps of S. Claude reads it after the skill, labelled as an override.
 - Keep it short: Claude Code caps a hook's context at 10,000 characters.
+
+## Inject on a tool call
+
+An agent can use a skill's MCP tools without invoking the skill. To have the patch arrive anyway, name those tools in its frontmatter with `patch-tools:`, space-separated globs matched against the tool name:
+
+```markdown
+---
+name: figma-design-to-code.patch
+patch-tools: mcp__*tempad-dev__*
+disable-model-invocation: true
+user-invocable: false
+---
+```
+
+On the first matching call in a session the patch is injected after the tool's result, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated. Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
 
 ## Install
 
