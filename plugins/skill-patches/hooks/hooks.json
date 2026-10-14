@@ -1,9 +1,21 @@
 {
-  "description": "Inject <skill>.patch/SKILL.md when a skill runs: model-invoked (PostToolUse on Skill) or user-typed (/skill, UserPromptExpansion)",
+  "description": "Inject <skill>.patch/SKILL.md when a skill runs: model-invoked (PostToolUse on Skill) or user-typed (/skill, UserPromptExpansion); or on the first call of an MCP tool its patch-tools glob names",
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Skill",
+        "matcher": "Skill|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/inject.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
         "hooks": [
           {
             "type": "command",
