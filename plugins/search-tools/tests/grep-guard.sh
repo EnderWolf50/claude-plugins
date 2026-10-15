@@ -14,7 +14,7 @@ mkdir -p "$tmp/src/sub" && touch "$tmp/src/a.py" "$tmp/src/b.py"
 # The hook runs with cwd $tmp (holds src/a.py, src/b.py, src/sub/).
 check() {
   local out got
-  out="$(jq -n --arg c "$2" --arg d "$tmp" '{cwd: $d, tool_input: {command: $c, description: "d"}}' | bash "$guard")"
+  out="$(jq -n --arg c "$2" --arg d "${cwd:-$tmp}" '{cwd: $d, tool_input: {command: $c, description: "d"}}' | bash "$guard")"
   case "$out" in
     *'"deny"'*)      got=deny ;;
     *updatedInput*)  got="rewrite: $(printf '%s' "$out" | jq -r '.hookSpecificOutput.updatedInput.command')"
@@ -59,6 +59,11 @@ check allow "$g -rn pat src/a.py"
 check allow "$g -rn pat src/a.py src/b.py | head"
 check allow "ls; $g -rn pat src/a.py"
 check rewrite "$g -rn pat src/a.py src/sub"           "rg -n pat src/a.py src/sub"
+# A cwd with backslashes (C:\Users\...) is read as written, not as escapes (\t, \U).
+cwd="$tmp/w\\tx"; mkdir -p "$cwd/src" && touch "$cwd/src/a.py"
+check allow "$g -rn pat src/a.py"
+command -v cygpath >/dev/null && cwd="$(cygpath -w "$tmp")" && check allow "$g -rn pat src/a.py"
+unset cwd
 check rewrite "$g -rn pat src/missing.py"             "rg -n pat src/missing.py"
 # Anything the rewrite cannot map with confidence is refused as before.
 check deny  "$g -rn \$PAT src"
