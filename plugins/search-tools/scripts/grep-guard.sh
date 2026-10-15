@@ -57,9 +57,11 @@ verdict="$(verdict_of "$cmd")"
 # The command with every recursive grep segment that maps to rg rewritten (mode=out), or with
 # those segments and the file-only ones replaced by `:` (mode=mask, checked again for what is left).
 rewrite() {
-  printf '%s' "$1" | awk -v RS='\001' -v mode="$2" -v cwd="$3" '
+  # cwd goes in through ENVIRON: awk -v would read the backslashes of C:\Users\... as escapes
+  printf '%s' "$1" | CWD="$3" awk -v RS='\001' -v mode="$2" '
   function sq(v) { gsub(/\047/, "\047\\\047\047", v); return "\047" v "\047" }
-  function isfile(p) {
+  function isfile(p,    cwd) {
+    cwd = ENVIRON["CWD"]
     if (p !~ /^\// && p !~ /^[A-Za-z]:/ && cwd != "") p = cwd "/" p
     return system("test -f " sq(p)) == 0
   }

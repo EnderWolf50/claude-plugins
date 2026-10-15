@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+- Fix: on Windows the Bash guard read the session cwd (`C:\Users\...`) through `awk -v`, which turns backslashes into escapes, so `grep -r` on a file given by a relative path was rewritten to rg instead of left alone, and awk printed `escape sequence` warnings. The cwd now reaches awk through the environment.
+
 ## 1.5.0
 - The Bash guard rewrites a recursive grep inside a pipeline or compound command too: only that segment becomes rg, the rest runs as written (`cat f; grep -rn x src | head` runs as `cat f; rg -n x src | head`). Before, the whole command was refused and its other parts were lost with it.
 - `grep -r` whose path arguments are all existing regular files runs unchanged: on a file it is plain grep.
