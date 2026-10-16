@@ -16,6 +16,20 @@ claude plugin marketplace add EnderWolf50/claude-plugins
 
 win-toast is Windows-only; search-tools runs on Windows, Linux and macOS; typescript7-lsp needs Bun and a project on TypeScript 7. Each plugin's README covers its own hooks, skills and knobs.
 
+## Codex
+
+The native Codex marketplace exposes `guards` and `skill-patches`:
+
+```sh
+codex plugin marketplace add EnderWolf50/claude-plugins
+codex plugin add guards@enderwolf50
+codex plugin add skill-patches@enderwolf50
+```
+
+Open `/hooks` to review and trust their definitions, then start a new session. Node is required;
+guards also uses Bash/jq on POSIX shells and PowerShell 7 on Windows. The CC and Codex adapters
+ship together; CC's existing hooks keep their behavior. Test adapters with `python .github/test-codex.py`.
+
 ## Layout
 
 ```

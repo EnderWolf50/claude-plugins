@@ -1,10 +1,15 @@
 {
   "name": "guards",
   "description": "Denies Bash commands that change more than the agent knows about, each with the narrower command to run instead: git add -A / --all / ., git commit -a, chezmoi apply --force without a target.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "EnderWolf50"
   },
   "license": "MIT",
-  "keywords": ["git", "chezmoi", "guard", "hooks"]
+  "keywords": [
+    "git",
+    "chezmoi",
+    "guard",
+    "hooks"
+  ]
 }

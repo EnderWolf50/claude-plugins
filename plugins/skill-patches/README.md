@@ -1,5 +1,13 @@
 # skill-patches
 
+Codex: add the `EnderWolf50/claude-plugins` marketplace and install `skill-patches@enderwolf50`.
+Review its hooks in `/hooks`. The Codex adapter handles `$skill` mentions in submitted prompts,
+concrete `SKILL.md` reads observed through shell calls, and `patch-tools` MCP globs. Global
+patches precede project patches; symlinks are deduplicated. Changed patch content reinjects,
+and compaction resets session marks. Nested working directories resolve to the repository root.
+Implicit skill context with no observable file read still needs the global instruction fallback;
+Codex has no `Skill` or `UserPromptExpansion` event. No CC hook behavior is removed.
+
 Extend a skill you do not own (a plugin's, a shared repo's) without editing it. When skill `S` runs, this plugin injects your `S.patch` skill next to it, so your additions survive the skill's updates.
 
 | Hook | Fires when | Skill name from |

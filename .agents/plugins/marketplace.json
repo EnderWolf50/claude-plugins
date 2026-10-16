@@ -1,0 +1,32 @@
+{
+  "name": "enderwolf50",
+  "interface": {
+    "displayName": "EnderWolf50"
+  },
+  "plugins": [
+    {
+      "name": "guards",
+      "source": {
+        "source": "local",
+        "path": "./plugins/guards"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "skill-patches",
+      "source": {
+        "source": "local",
+        "path": "./plugins/skill-patches"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "skill-patches",
+  "version": "2.2.0",
+  "description": "Inject skill patches on explicit skill mentions, observed skill reads and matching MCP calls.",
+  "hooks": "./hooks/codex.json"
+}
