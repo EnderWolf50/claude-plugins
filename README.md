@@ -18,17 +18,24 @@ win-toast is Windows-only; search-tools runs on Windows, Linux and macOS; typesc
 
 ## Codex
 
-The native Codex marketplace exposes `guards` and `skill-patches`:
+The native Codex marketplace exposes `guards`, `skill-patches`, `search-tools` and
+the Codex-only `security-guidance` bridge:
 
 ```sh
 codex plugin marketplace add EnderWolf50/claude-plugins
 codex plugin add guards@enderwolf50
 codex plugin add skill-patches@enderwolf50
+codex plugin add search-tools@enderwolf50
+codex plugin add security-guidance@enderwolf50
 ```
 
 Open `/hooks` to review and trust their definitions, then start a new session. Node is required;
 guards also uses Bash/jq on POSIX shells and PowerShell 7 on Windows. The CC and Codex adapters
 ship together; CC's existing hooks keep their behavior. Test adapters with `python .github/test-codex.py`.
+Search-tools requires Git Bash/jq on Windows and shares live session records with CC.
+The [security bridge](plugins/security-guidance/README.md) uses `uv` and native Codex
+review, keeps Stop review off, and reports background results at the next safe point;
+Codex does not support CC's automatic asyncRewake.
 
 ## Layout
 

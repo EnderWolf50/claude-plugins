@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+- Add native Codex hooks. Track Codex sessions with shared CC-compatible live-process records; preserve concurrent sessions across hosts. Unknown owners skip automatic serving. Explicit SessionEnd removes the thread record; a missing SessionEnd conservatively retains it until the owning app-server exits.
+- Route literal recursive grep to rg in PowerShell as well as Bash. PowerShell expressions are refused with an actionable rg message. Codex rewrites include its required allow decision; the CC guard keeps its existing permission semantics.
+
 ## 1.5.1
 - Fix: on Windows the Bash guard read the session cwd (`C:\Users\...`) through `awk -v`, which turns backslashes into escapes, so `grep -r` on a file given by a relative path was rewritten to rg instead of left alone, and awk printed `escape sequence` warnings. The cwd now reaches awk through the environment.
 

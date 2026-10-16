@@ -1,3 +1,4 @@
 *.bak
 *.tmp
 .tgrep/
+__pycache__/
