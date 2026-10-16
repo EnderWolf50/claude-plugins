@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+- Codex MCP patch globs also match server names whose hyphens were normalized to underscores.
+
 ## 2.2.0
 - Codex hooks inject patches for explicit $skill mentions, observed concrete SKILL.md reads and matching MCP tools. Deduplicate per session/content; compaction resets markers. Keep instruction fallback for implicit skills without an observable read.
 

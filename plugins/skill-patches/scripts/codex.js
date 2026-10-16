@@ -43,7 +43,8 @@ if (event.hook_event_name === 'PostToolUse') {
         if (!fs.existsSync(file)) continue;
         const front = fs.readFileSync(file, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
         const patterns = front?.[1].match(/^patch-tools:\s*(.+)$/m)?.[1].trim().split(/\s+/) || [];
-        const matches = patterns.some(pattern => new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$').test(event.tool_name));
+        // Codex/harnesses may normalize MCP server hyphens to underscores.
+        const matches = patterns.some(pattern => new RegExp('^' + pattern.replace(/-/g, '_').replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$').test(event.tool_name.replace(/-/g, '_')));
         if (matches) names.add(name.slice(0, -6));
       }
     }

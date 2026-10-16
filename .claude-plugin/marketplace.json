@@ -59,7 +59,7 @@
       "name": "skill-patches",
       "source": "./plugins/skill-patches",
       "description": "Extend someone else's skill without editing it: injects <skill>.patch/SKILL.md when the skill runs",
-      "version": "2.2.0",
+      "version": "2.2.1",
       "author": {
         "name": "EnderWolf50"
       },

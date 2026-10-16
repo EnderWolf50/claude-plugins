@@ -44,7 +44,7 @@ class Hooks(unittest.TestCase):
             for root, body in [(home / '.agents/skills', 'global override'), (project / '.agents/skills', 'project override')]:
                 patch = root / 'tdd.patch/SKILL.md'
                 patch.parent.mkdir(parents=True)
-                patch.write_text('---\nname: tdd.patch\npatch-tools: mcp__test__*\n---\n' + body)
+                patch.write_text('---\nname: tdd.patch\npatch-tools: mcp__test__* mcp__my-server__*\n---\n' + body)
             env = {'SKILL_PATCHES_HOME': str(home), 'PLUGIN_DATA': str(base / 'state')}
             event = {'hook_event_name': 'UserPromptSubmit', 'session_id': 'one', 'cwd': str(nested), 'prompt': '$tdd build this'}
             run = lambda e: invoke('plugins/skill-patches/scripts/codex.js', e, env)
@@ -56,6 +56,7 @@ class Hooks(unittest.TestCase):
             mcp = {**event, 'session_id': 'two', 'hook_event_name': 'PostToolUse', 'tool_name': 'mcp__test__read'}
             self.assertTrue(run(mcp))
             self.assertEqual(run(mcp), {})
+            self.assertTrue(run({**mcp, 'session_id': 'normalized', 'tool_name': 'mcp__my_server__read'}))
             self.assertEqual(run({**mcp, 'session_id': 'other', 'tool_name': 'mcp__unrelated__read'}), {})
             read = {**event, 'session_id': 'three', 'hook_event_name': 'PostToolUse', 'tool_name': 'Bash', 'tool_input': {'command': f'cat "{skill}"'}}
             self.assertTrue(run(read))
