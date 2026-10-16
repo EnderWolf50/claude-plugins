@@ -1,5 +1,17 @@
 # search-tools
 
+## Codex
+
+The native adapter uses the same lifecycle and grep guard. It registers a hashed
+session record under `~/.claude/sessions` owned by the persistent Codex process;
+CC and Codex reapers therefore preserve each other's active roots. SessionEnd
+removes only its own record and detaches the existing reaper. A crash is cleaned
+up on the next start/end after the owner exits; a missing SessionEnd keeps a
+conservative lease until app-server exit. Unknown process ownership skips serving.
+On Windows the adapter explicitly locates Git Bash (not the WSL launcher).
+PowerShell literals can be rewritten; expressions are refused with an rg hint.
+`SEARCH_TOOLS_ALLOW_GREP=1` retains the explicit bypass.
+
 Keeps a [tgrep](https://github.com/microsoft/tgrep) (trigram-indexed grep) server alive for large repos only while a [Claude Code](https://code.claude.com) session is using them, and ships a reference skill for the search tools Claude routes between: `tgrep`, `ast-grep`, `semble`, `ripgrep`.
 
 Why: on a 13k-file repo a brute-force `tgrep`/`rg` takes ~14 s; against a running `tgrep serve` the same search takes ~40 ms, and the server's file watcher keeps the index fresh. Nobody wants to start and stop that server by hand.

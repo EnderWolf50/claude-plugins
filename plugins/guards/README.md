@@ -1,5 +1,11 @@
 # guards
 
+Codex: add the `EnderWolf50/claude-plugins` marketplace and install `guards@enderwolf50`.
+Review its hook in `/hooks` before relying on it. The Codex adapter reuses the Bash guard on
+POSIX shells and uses PowerShell's AST on Windows, including quoted executable paths,
+compound commands and here-strings. It inspects literal command names and arguments; dynamic
+commands and specialized tool paths are outside its coverage. It is a workflow guard, not a sandbox.
+
 A `PreToolUse` (Bash) hook that denies commands which change more than the agent knows about. Each denial names the narrower command to run instead, so the retry lands on it.
 
 | Denied | Reason given to the agent | Why |

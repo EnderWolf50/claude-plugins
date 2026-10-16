@@ -1,0 +1,6 @@
+{
+  "name": "search-tools",
+  "version": "1.6.0",
+  "description": "Share tgrep lifecycle and recursive grep routing with Codex.",
+  "hooks": "./hooks/codex.json"
+}

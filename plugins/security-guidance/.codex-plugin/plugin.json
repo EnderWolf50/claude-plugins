@@ -1,0 +1,6 @@
+{
+  "name": "security-guidance",
+  "version": "1.0.0",
+  "description": "Security edit reminders and deduplicated native Codex commit/push reviews.",
+  "hooks": "./hooks/codex.json"
+}

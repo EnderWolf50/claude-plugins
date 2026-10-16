@@ -28,7 +28,7 @@
       "name": "search-tools",
       "source": "./plugins/search-tools",
       "description": "tgrep server lifecycle (SessionStart/SessionEnd hooks) + search-tool reference skill (tgrep / ast-grep / semble / ripgrep)",
-      "version": "1.5.1",
+      "version": "1.6.0",
       "author": {
         "name": "EnderWolf50"
       },
@@ -59,7 +59,7 @@
       "name": "skill-patches",
       "source": "./plugins/skill-patches",
       "description": "Extend someone else's skill without editing it: injects <skill>.patch/SKILL.md when the skill runs",
-      "version": "2.1.0",
+      "version": "2.2.1",
       "author": {
         "name": "EnderWolf50"
       },
@@ -74,7 +74,7 @@
       "name": "guards",
       "source": "./plugins/guards",
       "description": "Denies git add -A / git commit -a and chezmoi apply --force without a target, naming the narrower command",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "EnderWolf50"
       },
