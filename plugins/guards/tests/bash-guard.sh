@@ -68,5 +68,11 @@ check allow "chezmoi apply --force --dry-run"
 check allow "chezmoi apply -nv --force"
 check allow "chezmoi diff"
 check allow "chezmoi status --force"
+# \\ on Windows: the Bash tool would halve it, so it is denied there and nowhere else
+GUARDS_PLATFORM=MINGW64_NT-10.0 check deny  'printf "%s" '\''a\\b'\'''
+GUARDS_PLATFORM=MSYS_NT-10.0    check deny  $'python - <<\'EOF\'\nprint("a\\\\b")\nEOF'
+GUARDS_PLATFORM=MINGW64_NT-10.0 check allow 'echo '\''a\b'\'' [\s\S]'
+GUARDS_PLATFORM=Linux           check allow 'printf "%s" '\''a\\b'\'''
+GUARDS_PLATFORM=codex           check allow 'printf "%s" '\''a\\b'\'''
 
 exit $fail

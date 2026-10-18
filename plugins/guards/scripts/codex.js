@@ -8,7 +8,7 @@ const shell = event.tool_input?.shell || '';
 const powershell = process.platform === 'win32' && !/bash|zsh|\/sh$/.test(shell);
 const result = powershell
   ? spawnSync('pwsh', ['-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'codex-guard.ps1')], { input, encoding: 'utf8' })
-  : spawnSync('bash', [path.join(__dirname, 'bash-guard.sh')], { input, encoding: 'utf8' });
+  : spawnSync('bash', [path.join(__dirname, 'bash-guard.sh')], { input, encoding: 'utf8', env: { ...process.env, GUARDS_PLATFORM: 'codex' } });
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);
 if (result.error) process.stderr.write(`guards: ${result.error.message}\n`);
