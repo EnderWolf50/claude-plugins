@@ -6,9 +6,10 @@ const input = fs.readFileSync(0, 'utf8');
 const event = JSON.parse(input);
 const shell = event.tool_input?.shell || '';
 const powershell = process.platform === 'win32' && !/bash|zsh|\/sh$/.test(shell);
+const env = { ...process.env, GUARDS_HOST: 'codex' };   // codex-guard.ps1 hands some commands to bash-guard.sh
 const result = powershell
-  ? spawnSync('pwsh', ['-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'codex-guard.ps1')], { input, encoding: 'utf8' })
-  : spawnSync('bash', [path.join(__dirname, 'bash-guard.sh')], { input, encoding: 'utf8' });
+  ? spawnSync('pwsh', ['-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'codex-guard.ps1')], { input, encoding: 'utf8', env })
+  : spawnSync('bash', [path.join(__dirname, 'bash-guard.sh')], { input, encoding: 'utf8', env });
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);
 if (result.error) process.stderr.write(`guards: ${result.error.message}\n`);

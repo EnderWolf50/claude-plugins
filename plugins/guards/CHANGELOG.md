@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+- Deny a Bash command containing `\\` on Windows (Git Bash, MSYS, Cygwin): Claude Code's Bash tool turns it into `\` before bash runs the command, even inside single quotes and quoted heredocs. The reason points at writing the program to a file and running it by path. The Codex adapter is exempt: `codex.js` sets `GUARDS_HOST=codex` for both its bash and pwsh paths.
+
 ## 1.1.0
 - Codex plugin manifest and hook adapter. Windows unified exec is parsed with PowerShell AST; POSIX shells reuse the existing Bash guard. No hook trust is granted automatically.
 

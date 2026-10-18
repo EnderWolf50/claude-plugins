@@ -100,11 +100,13 @@ class Hooks(unittest.TestCase):
         deny = ["git add -A", "git commit -am fix", "git add .", "chezmoi apply --force",
                 "git -C somewhere add --all", "echo ok; git add -A"]
         allow = ['git add src/app.py', 'git commit -m "fix git add -A"',
-                 'chezmoi apply --force ~/.codex/AGENTS.md', 'chezmoi apply --force --dry-run']
+                 'chezmoi apply --force ~/.codex/AGENTS.md', 'chezmoi apply --force --dry-run',
+                 r"printf '%s' 'a\\b'"]
         if os.name == "nt":
             deny += ['& "C:\\Program Files\\Git\\cmd\\git.exe" add -A', 'if ($true) { git add . }']
             allow += ["$message = @'\ngit add -A\n'@\nWrite-Output $message"]
             allow += ['git commit --message "-a"', 'git commit --file message.txt']
+            allow += ["cat <<EOF\na\\\\b\nEOF"]   # pwsh cannot parse it and hands it to bash-guard.sh
         for command in deny + allow:
             with self.subTest(command=command):
                 result = invoke('plugins/guards/scripts/codex.js', {
