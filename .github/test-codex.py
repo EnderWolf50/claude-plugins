@@ -106,6 +106,7 @@ class Hooks(unittest.TestCase):
             deny += ['& "C:\\Program Files\\Git\\cmd\\git.exe" add -A', 'if ($true) { git add . }']
             allow += ["$message = @'\ngit add -A\n'@\nWrite-Output $message"]
             allow += ['git commit --message "-a"', 'git commit --file message.txt']
+            allow += ["cat <<EOF\na\\\\b\nEOF"]   # pwsh cannot parse it and hands it to bash-guard.sh
         for command in deny + allow:
             with self.subTest(command=command):
                 result = invoke('plugins/guards/scripts/codex.js', {

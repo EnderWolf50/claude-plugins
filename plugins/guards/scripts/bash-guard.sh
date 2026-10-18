@@ -6,7 +6,7 @@
 #   chezmoi apply --force (no target) diff and force-apply one drifted target at a time
 #   \\ anywhere, on Windows           write the program to a file and run it by path
 # Each segment of a compound command (&&, ||, ;, |, &, subshells) is checked on its own;
-# heredoc bodies and quoted strings are data, never commands.
+# for the git and chezmoi rules, heredoc bodies and quoted strings are data, never commands.
 
 set -u
 command -v jq >/dev/null 2>&1 || exit 0
@@ -25,10 +25,14 @@ deny() {
 cmd="$(jq -r '.tool_input.command // empty' 2>/dev/null | tr -d '\r')"   # Windows jq writes CRLF
 
 # Claude Code's Bash tool on Windows turns every \\ into \ before bash sees the command, even
-# inside single quotes and a quoted heredoc. GUARDS_PLATFORM stands in for uname (codex.js, tests).
-case "${GUARDS_PLATFORM:-$(uname -s)}" in
-  MINGW*|MSYS*|CYGWIN*)
-    case "$cmd" in *'\\'*) deny "On Windows the Bash tool turns every \\\\ in a command into \\ before bash runs it, inside single quotes and quoted heredocs too, so this command would not run as written. Write the program or text with the Write tool to a file, then run it by path (\`python <file>\`, \`bash <file>\`, \`--body-file <file>\`)." ;; esac ;;
+# inside single quotes and a quoted heredoc. Codex is not known to, so codex.js sets GUARDS_HOST.
+# GUARDS_PLATFORM stands in for uname in tests.
+case "$cmd" in *'\\'*)
+  if [ "${GUARDS_HOST:-}" != codex ]; then
+    case "${GUARDS_PLATFORM:-$(uname -s)}" in MINGW*|MSYS*|CYGWIN*)
+      deny "Write the program or text to a file with the Write tool, then run or pass it by path (\`python <file>\`, \`bash <file>\`, \`--body-file <file>\`). On Windows the Bash tool turns every \\\\ in a command into \\ before bash runs it, inside single quotes and quoted heredocs too, so this command would not run as written." ;;
+    esac
+  fi ;;
 esac
 
 case "$cmd" in *git*|*chezmoi*) ;; *) exit 0 ;; esac

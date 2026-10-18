@@ -1,5 +1,5 @@
 {
-  "description": "Deny whole-tree git staging (git add -A/., git commit -a) and chezmoi apply --force without a target, naming the narrower command",
+  "description": "Deny whole-tree git staging (git add -A/., git commit -a) chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve, naming the narrower command",
   "hooks": {
     "PreToolUse": [
       {

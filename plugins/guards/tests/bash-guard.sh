@@ -73,6 +73,6 @@ GUARDS_PLATFORM=MINGW64_NT-10.0 check deny  'printf "%s" '\''a\\b'\'''
 GUARDS_PLATFORM=MSYS_NT-10.0    check deny  $'python - <<\'EOF\'\nprint("a\\\\b")\nEOF'
 GUARDS_PLATFORM=MINGW64_NT-10.0 check allow 'echo '\''a\b'\'' [\s\S]'
 GUARDS_PLATFORM=Linux           check allow 'printf "%s" '\''a\\b'\'''
-GUARDS_PLATFORM=codex           check allow 'printf "%s" '\''a\\b'\'''
+GUARDS_PLATFORM=MINGW64_NT-10.0 GUARDS_HOST=codex check allow 'printf "%s" '\''a\\b'\'''
 
 exit $fail
