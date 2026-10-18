@@ -17,7 +17,7 @@ A `PreToolUse` (Bash) hook that denies commands which change more than the agent
 
 Passes: `git add <paths>`, `git add -p`, `git commit -m …`, `chezmoi apply` (it prompts on drift), `chezmoi apply --force <target>`, and `chezmoi apply --force --dry-run`.
 
-Every segment of a compound command (`&&`, `||`, `;`, `|`, `&`, subshells) is checked on its own, so `make && git add -A` is denied too. `git -C <dir>`, `git -c k=v` and other global options before the subcommand are skipped. For the git and chezmoi rules, quoted strings and heredoc bodies are data: `git commit -m "fix git add -A"` passes. The `\\` rule looks at the whole command, since the Bash tool halves it everywhere. Needs `bash` and `jq`.
+Every segment of a compound command (`&&`, `||`, `;`, `|`, `&`, subshells) is checked on its own, so `make && git add -A` is denied too. `git -C <dir>`, `git -c k=v` and other global options before the subcommand are skipped. For the git and chezmoi rules, quoted strings and heredoc bodies are data: `git commit -m "fix git add -A"` passes. The `\\` rule looks at the whole command, since the Bash tool halves it everywhere; it keys on `uname -s`, so a `bash` on PATH that reports `Linux` (WSL's `bash.exe`) skips it. Needs `bash` and `jq`.
 
 You can still run any of these yourself with `!` in the prompt; the hook only sees the agent's Bash tool calls.
 
