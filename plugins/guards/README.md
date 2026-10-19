@@ -3,11 +3,11 @@
 Codex: add the `EnderWolf50/claude-plugins` marketplace and install `guards@enderwolf50`.
 Review its hook in `/hooks` before relying on it. The Codex adapter reuses the Bash guard on
 POSIX shells and uses PowerShell's AST on Windows, including quoted executable paths,
-compound commands and here-strings. The merge rule is one Node script for both hosts, with its own
-tokenizer that reads bash or PowerShell quoting. It inspects literal command names and arguments; dynamic
+compound commands and here-strings. It inspects literal command names and arguments; dynamic
 commands and specialized tool paths are outside its coverage. It is a workflow guard, not a sandbox.
+The merge rule is one Node script for both hosts, with its own tokenizer that reads bash or PowerShell quoting.
 
-A `PreToolUse` (Bash) hook that denies commands which change more than the agent knows about. Each denial names the narrower command to run instead, so the retry lands on it.
+A `PreToolUse` hook on the Bash tool (the merge rule on the PowerShell tool too) that denies commands which change more than the agent knows about. Each denial names the narrower command to run instead, so the retry lands on it.
 
 | Denied | Reason given to the agent | Why |
 |---|---|---|
@@ -21,7 +21,9 @@ Passes: `git add <paths>`, `git add -p`, `git commit -m …`, `chezmoi apply` (i
 
 Every segment of a compound command (`&&`, `||`, `;`, `|`, `&`, subshells) is checked on its own, so `make && git add -A` is denied too. `git -C <dir>`, `git -c k=v` and other global options before the subcommand are skipped. For the git and chezmoi rules, quoted strings and heredoc bodies are data: `git commit -m "fix git add -A"` passes. The `\\` rule looks at the whole command, since the Bash tool halves it everywhere; it keys on `uname -s`, so a `bash` on PATH that reports `Linux` (WSL's `bash.exe`) skips it. Needs `bash` and `jq`; the merge rule needs `node`.
 
-You can still run any of these yourself with `!` in the prompt; the hook only sees the agent's Bash tool calls.
+The merge rule (`scripts/merge-guard.js`) looks the head SHA up with `gh pr view` / `glab mr view` (or the API for an API merge), passing on the command's own `GH_REPO`-style variables, so it needs those CLIs logged in; a failed lookup is denied with its error, and all lookups share a 25 s budget inside the 30 s hook timeout. It finds `gh`/`glab` anywhere in a segment (after `command`, `sudo`, `then`, `{`, …) and inside `bash -c` / `pwsh -c` / `eval` / `iex` strings, follows `cd` / `Set-Location` before the merge, and skips heredoc bodies. A GraphQL merge, a GraphQL query read from a file, `xargs` feeding the PR number and a `gh alias set` that merges are denied, since the head cannot be read from the command. The attestation is text the agent writes: the rule names the head and tells it to ask the user first, but it cannot tell whether the user did. The record is read from the repository the command runs in, at `$(git rev-parse --git-common-dir)/reviewed-heads`, one `<sha> <date> <who>` per line, shared by every worktree and never committed.
+
+You can still run any of these yourself with `!` in the prompt; the hook only sees the agent's Bash and PowerShell tool calls.
 
 ## Install
 
@@ -36,5 +38,3 @@ claude plugin install guards@enderwolf50
 bash plugins/guards/tests/bash-guard.sh
 node --test plugins/guards/tests/merge-guard.test.js
 ```
-
-The merge rule (`scripts/merge-guard.js`, Node) looks the head SHA up with `gh pr view` / `glab mr view` (or the API for an API merge), so it needs `node` and those CLIs logged in; a failed lookup is denied with its error, and all lookups share a 25 s budget inside the 30 s hook timeout. It runs on the Bash and PowerShell tools, finds `gh`/`glab` anywhere in a segment (after `command`, `sudo`, `then`, `{`, …) and inside `bash -c` / `pwsh -c` scripts, follows `cd` before the merge, and skips heredoc bodies. The attestation is text the agent writes: the rule names the head and tells it to ask the user first, but it cannot tell whether the user did. The record is `$(git rev-parse --git-common-dir)/reviewed-heads`, one `<sha> <date> <who>` per line, shared by every worktree and never committed.

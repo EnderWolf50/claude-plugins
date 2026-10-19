@@ -1,12 +1,13 @@
 // PreToolUse (Bash, PowerShell): a merge waits for a code review of the exact head it merges.
 //
 // Checked: `gh pr merge` (with --auto too), `gh api -X PUT …/pulls/<n>/merge`, `glab mr merge`,
-// `glab api --method PUT …/merge_requests/<n>/merge`, anywhere in a segment (after `command`, `sudo`, `xargs`,
-// `then`, `{`, …) and inside `bash -c "…"` / `pwsh -c "…"`. Each one's current head SHA is looked up with gh/glab,
+// `glab api --method PUT …/merge_requests/<n>/merge`, anywhere in a segment (after `command`, `sudo`, `then`, `{`,
+// …) and inside `bash -c "…"` / `pwsh -c "…"` / `eval` / `iex`. Each one's current head SHA is looked up with gh/glab,
 // and the merge passes when that SHA is recorded in `<git common dir>/reviewed-heads` (the code-review skill's
 // patch appends it once a review leaves nothing to fix), or when the command itself attests it:
 // `SHIP_REVIEWED=<sha> gh …`, or `$env:SHIP_REVIEWED='<sha>'; gh …` in PowerShell, for a review done another way
-// that the user confirmed. A GraphQL merge or `xargs` feeding the selector hides the head, so it is denied.
+// that the user confirmed. A GraphQL merge (or a query read from a file), `xargs` feeding the selector and a
+// `gh alias set` that merges hide the head, so they are denied.
 // Anything else is denied with the head SHA and both ways forward. The user's own merges (web UI, their
 // terminal, `!` commands) never reach this hook. `node merge-guard.js codex` reads Codex's PowerShell on Windows.
 'use strict';
@@ -21,6 +22,9 @@ const VALUE_FLAGS = new Set(['-R', '--repo', '-b', '--body', '-F', '--body-file'
   '--match-head-commit', '-A', '--author-email', '-m', '--message', '--sha', '--squash-message']);
 const SHELLS = /^(bash|sh|zsh|dash|pwsh|powershell|cmd|wsl)$/i;
 const SHELL_SCRIPT_FLAG = /^(-[a-z]*c|-command|\/c)$/i;
+const EVALS = /^(eval|iex|invoke-expression)$/i;
+const CD = /^(cd|pushd|set-location|sl|chdir)$/i;
+const CONTROL = /^(then|do|else|\{)$/;
 const MERGE_ENDPOINT = /(?:pulls|merge_requests)\/\d+\/merge\/?(?:\?.*)?$/;
 const DEADLINE = Date.now() + 25000;  // every lookup shares it, inside the hosts' 30 s hook timeout
 
@@ -119,10 +123,19 @@ const viaText = s => s;
 
 /** How to read the head this merge would land: [exe, args, parse], or a reason it cannot be read. */
 function lookupOf(tool, sub, before) {
-  if (before.some(w => exeName(w) === 'xargs')) return 'its PR number comes from xargs';
-  if (sub[0] === (tool === 'gh' ? 'pr' : 'mr') && sub[1] === 'merge') {
+  let globalRepo = null;  // `gh -R o/r pr merge 5`
+  while (sub[0] === '-R' || sub[0] === '--repo' || /^--repo=/.test(sub[0] || '')) {
+    globalRepo = sub[0].includes('=') ? sub[0].slice(7) : sub[1];
+    sub = sub.slice(sub[0].includes('=') ? 1 : 2);
+  }
+  if (sub.includes('--help') || sub.includes('-h')) return null;
+  if (sub[0] === 'alias' && sub[1] === 'set' && sub.some(w => /\bmerge\b/.test(w))) return 'it defines an alias that merges';
+  const merging = tool === 'gh' ? sub[0] === 'pr' && sub[1] === 'merge'
+    : sub[0] === 'mr' && (sub[1] === 'merge' || sub[1] === 'accept');
+  if (merging && before.some(w => exeName(w) === 'xargs')) return 'its PR number comes from xargs';
+  if (merging) {
     const args = sub.slice(2);
-    const sel = selector(args), repo = flagValue(args, ['-R', '--repo']);
+    const sel = selector(args), repo = flagValue(args, ['-R', '--repo']) || globalRepo;
     const target = [...(sel ? [sel] : []), ...(repo ? ['-R', repo] : [])];
     return tool === 'gh'
       ? ['gh', ['pr', 'view', ...target, '--json', 'headRefOid', '-q', '.headRefOid'], viaText]
@@ -130,29 +143,38 @@ function lookupOf(tool, sub, before) {
   }
   if (sub[0] !== 'api') return null;
   if (sub.includes('graphql')) {
-    return sub.some(w => /mergePullRequest|enablePullRequestAutoMerge/.test(w)) ? 'it is a GraphQL merge' : null;
+    if (sub.some(w => /mergePullRequest|enablePullRequestAutoMerge/.test(w))) return 'it is a GraphQL merge';
+    return sub.some(w => /=@/.test(w)) || sub.includes('--input') ? 'its GraphQL query is read from a file' : null;
   }
   const endpoint = sub.find(w => MERGE_ENDPOINT.test(w));
-  if (!endpoint || (flagValue(sub, ['-X', '--method']) || '').toUpperCase() !== 'PUT') return null;  // GET only reads
+  const method = flagValue(sub, ['-X', '--method']) || (sub.find(w => /^-X./.test(w)) || '').slice(2);
+  if (!endpoint || method.toUpperCase() !== 'PUT') return null;  // GET only reads
   const pr = endpoint.replace(/^\//, '').replace(/\/merge\/?(?:\?.*)?$/, '');
   return tool === 'gh' ? ['gh', ['api', pr, '--jq', '.head.sha'], viaText] : ['glab', ['api', pr], viaJson];
 }
 
-/** Every merge call in the command: {lookup, cwd, attested}. `cd` segments move the working directory. */
+/** The directory a `cd` / `Set-Location` segment moves to, or null when it does not move. */
+function cdTarget(words, cwd) {
+  const c = words.findIndex(w => !CONTROL.test(w));
+  if (!CD.test(words[c] || '')) return null;
+  const arg = words.slice(c + 1).find(w => !/^(-path|-literalpath|-p|-l|--)$/i.test(w));
+  if (!arg || arg === '-') return null;
+  let to = arg.replace(/^~(?=$|[\\/])/, os.homedir());
+  if (process.platform === 'win32') to = to.replace(/^\/([a-z])(?=$|\/)/i, '$1:/');  // Git Bash's /d/dev
+  to = path.resolve(cwd, to);
+  return fs.existsSync(to) && fs.statSync(to).isDirectory() ? to : null;  // a cd that fails stays put
+}
+
+/** Every merge call in the command: {lookup, cwd, env, attested}. `cd` segments move the working directory. */
 function merges(cmd, cwd, ps = false, inherited = {}) {
   const found = [];
-  const lasting = { ...inherited };
+  const exported = { ...inherited };
   for (const seg of segments(cmd, ps)) {
-    const { vars, rest: words, lasting: keeps } = leadingAssignments(seg);
-    if (keeps) Object.assign(lasting, vars);
-    const env = { ...lasting, ...vars };
-    if (/^(cd|pushd|set-location|sl)$/i.test(words[0] || '') && words[1] && words[1] !== '-') {
-      let to = words[1].replace(/^~(?=$|[\\/])/, os.homedir());
-      if (process.platform === 'win32') to = to.replace(/^\/([a-z])(?=$|\/)/i, '$1:/');  // Git Bash's /d/dev
-      to = path.resolve(cwd, to);
-      if (fs.existsSync(to)) cwd = to;  // a cd that fails leaves the shell where it was
-      continue;
-    }
+    const { vars, rest: words, lasting } = leadingAssignments(seg);
+    if (lasting) Object.assign(exported, vars);
+    const env = { ...exported, ...vars };
+    const to = cdTarget(words, cwd);
+    if (to) { cwd = to; continue; }
     const s = words.findIndex(w => SHELLS.test(exeName(w)));
     if (s >= 0) {
       const f = words.findIndex((w, i) => i > s && SHELL_SCRIPT_FLAG.test(w));
@@ -160,20 +182,23 @@ function merges(cmd, cwd, ps = false, inherited = {}) {
         found.push(...merges(words[f + 1], cwd, /^(pwsh|powershell)$/i.test(exeName(words[s])), env));
       }
     }
+    const e = words.findIndex(w => EVALS.test(w));
+    if (e >= 0) found.push(...merges(words.slice(e + 1).join(' '), cwd, ps || words[e].toLowerCase() !== 'eval', env));
     for (let k = 0; k < words.length; k++) {
       const tool = exeName(words[k]);
       if (tool !== 'gh' && tool !== 'glab') continue;
       const lookup = lookupOf(tool, words.slice(k + 1), words.slice(0, k));
-      if (lookup) found.push({ lookup, cwd, attested: env.SHIP_REVIEWED || null });
+      if (lookup) found.push({ lookup, cwd, env, attested: env.SHIP_REVIEWED || null });
     }
   }
   return found;
 }
 
-function run(exe, args, cwd) {
+function run(exe, args, cwd, env = {}) {
   const timeout = DEADLINE - Date.now();
   if (timeout < 1000) throw new Error('out of time for the head lookups');
-  const r = spawnSync(exe, args, { cwd, encoding: 'utf8', shell: false, timeout, windowsHide: true });
+  const r = spawnSync(exe, args, { cwd, env: { ...process.env, ...env }, encoding: 'utf8', shell: false, timeout,
+    windowsHide: true });
   if (r.error || r.status !== 0) throw new Error((r.stderr || r.error?.message || `${exe} failed`).trim().split('\n')[0]);
   return r.stdout.trim();
 }
@@ -197,7 +222,7 @@ function check(cmd, cwd, exec = run, ps = false) {
     }
     const [exe, args, parse] = m.lookup;
     let sha;
-    try { sha = parse(exec(exe, args, m.cwd)); } catch (e) {
+    try { sha = parse(exec(exe, args, m.cwd, m.env)); } catch (e) {
       return `Could not read the head of this merge (${e.message}). Check the PR exists and gh/glab is logged in, then retry.`;
     }
     if (m.attested) {
@@ -216,7 +241,7 @@ function check(cmd, cwd, exec = run, ps = false) {
 
 if (require.main === module) {
   const event = JSON.parse(fs.readFileSync(0, 'utf8'));
-  // Codex's shell tool runs PowerShell on Windows unless it names a POSIX shell (as codex.js decides).
+  // Codex's shell tool runs PowerShell on Windows unless it names a POSIX shell: the same call as codex.js, change both.
   const ps = event.tool_name === 'PowerShell' || (process.argv[2] === 'codex' && process.platform === 'win32'
     && !/bash|zsh|\/sh$/.test(event.tool_input?.shell || ''));
   const reason = check(event.tool_input?.command || '', event.cwd || process.cwd(), run, ps);

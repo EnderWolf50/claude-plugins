@@ -134,6 +134,34 @@ test('an inline assignment covers only its own command; export and $env: last', 
   assert.equal(g.check(`$env:SHIP_REVIEWED = '${HEAD}'; gh pr merge 5`, '.', stub(dir), true), null);
 });
 
+test('round 2: a global -R, -XPUT, mr accept, eval and iex still find the merge', () => {
+  const calls = [];
+  const dir = repo();
+  for (const cmd of ['gh -R o/r pr merge 16 --squash', 'gh --repo=o/r pr merge 16', 'gh api -XPUT repos/o/r/pulls/5/merge',
+    'glab mr accept 5', 'eval "gh pr merge 5"', 'iex "gh pr merge 5"']) {
+    assert.match(g.check(cmd, '.', stub(dir, calls)) || '', /waits for a code review/, cmd);
+  }
+  assert.deepEqual(calls[0].slice(0, 6), ['gh', 'pr', 'view', '16', '-R', 'o/r']);
+  for (const cmd of ['gh api graphql -F query=@q.graphql', 'gh alias set m "pr merge"']) {
+    assert.match(g.check(cmd, '.', stub(dir)), /cannot be checked/, cmd);
+  }
+  assert.equal(g.check('gh pr merge --help', '.', stub(dir)), null);
+});
+
+test('the command\'s own variables reach the lookup, and cd after a keyword or with -Path moves', () => {
+  const seen = [];
+  const other = repo();
+  const exec = (exe, args, cwd, env) => { seen.push([exe, cwd, env && env.GH_REPO]); return exe === 'git' ? other : HEAD; };
+  g.check('GH_REPO=o/other gh pr merge 5', '.', exec);
+  assert.equal(seen[0][2], 'o/other');
+  seen.length = 0;
+  g.check(`if true; then cd ${other.replace(/\\/g, '/')} && gh pr merge 6; fi`, '.', exec);
+  assert.equal(seen[0][1], other);
+  seen.length = 0;
+  g.check(`Set-Location -Path '${other}'; gh pr merge 6`, '.', exec, true);
+  assert.equal(seen[0][1], other);
+});
+
 test('a failed head lookup is denied with a reason', () => {
   const failing = (exe) => { if (exe === 'gh') throw new Error('not logged in'); return '.'; };
   assert.match(g.check('gh pr merge 1', '.', failing), /not logged in/);
