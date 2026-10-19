@@ -12,8 +12,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def invoke(script, event, env=None):
-    result = subprocess.run(["node", str(ROOT / script)], input=json.dumps(event), text=True,
+def invoke(script, event, env=None, args=()):
+    result = subprocess.run(["node", str(ROOT / script), *args], input=json.dumps(event), text=True,
                             capture_output=True, env={**os.environ, **(env or {})}, check=True)
     return json.loads(result.stdout) if result.stdout.strip() else {}
 
@@ -113,6 +113,16 @@ class Hooks(unittest.TestCase):
                     'hook_event_name': 'PreToolUse', 'tool_name': 'Bash', 'tool_input': {'command': command}})
                 self.assertEqual(bool(result), command in deny)
                 if result: self.assertEqual(result['hookSpecificOutput']['permissionDecision'], 'deny')
+
+    def test_merge_guard(self):
+        hooks = json.loads((ROOT / 'plugins/guards/hooks/codex.json').read_text())['hooks']['PreToolUse'][0]['hooks']
+        self.assertTrue(any(h['command'].endswith('merge-guard.js" codex') for h in hooks))
+        def run(command):
+            return invoke('plugins/guards/scripts/merge-guard.js', {'hook_event_name': 'PreToolUse', 'tool_name': 'Bash',
+                          'cwd': str(ROOT), 'tool_input': {'command': command}}, args=['codex'])
+        # no such PR, so the head lookup fails and the merge is denied whether or not gh is logged in
+        self.assertEqual(run('gh pr merge 999999999 --merge')['hookSpecificOutput']['permissionDecision'], 'deny')
+        self.assertEqual(run('git status'), {})
 
     def test_patches(self):
         with tempfile.TemporaryDirectory() as temporary:

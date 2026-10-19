@@ -79,6 +79,61 @@ test('every merge in a compound command is checked', () => {
   assert.match(g.check('gh pr merge 1 --merge; gh pr merge 2 --merge', '.', twoHeads), /ffffffffffff/);
 });
 
+test('a merge after a prefix word, in a subshell or inside a shell script is still found', () => {
+  const dir = repo();
+  for (const cmd of ['command gh pr merge 5', 'sudo gh pr merge 5', 'timeout 60 gh pr merge 5', '(gh pr merge 5)',
+    'echo $(gh pr merge 5)', 'if true; then gh pr merge 5; fi', '{ gh pr merge 5; }', 'bash -c "gh pr merge 5"',
+    "wsl.exe -e bash -lc 'cd x && gh pr merge 5'", 'pwsh -NoProfile -c "gh pr merge 5"', 'cmd /c gh pr merge 5',
+    'glab api --method PUT projects/1/merge_requests/7/merge?x=1']) {
+    assert.match(g.check(cmd, '.', stub(dir)) || '', /waits for a code review/, cmd);
+  }
+});
+
+test('PowerShell paths and backtick escapes', () => {
+  const dir = repo();
+  for (const cmd of ['C:\\tools\\gh.exe pr merge 5', '& "C:\\Program Files\\GitHub CLI\\gh.exe" pr merge 5',
+    'echo "a`"b"; gh pr merge 6', 'if ($true) { gh pr merge 5 }']) {
+    assert.match(g.check(cmd, '.', stub(dir), true) || '', /waits for a code review/, cmd);
+  }
+});
+
+test('heredoc bodies, reads of the merge endpoint and quoted text are not merges', () => {
+  const calls = [];
+  for (const cmd of ['cat <<EOF > notes.md\ngh pr merge 1\nEOF\ngit status', "cat <<-'X'\n\tgh pr merge 1\n\tX",
+    'gh api repos/o/r/pulls/5/merge', 'gh api repos/o/r/pulls/5/merge --method GET', 'git commit -m "gh pr merge 1"']) {
+    assert.equal(g.check(cmd, '.', stub(repo(), calls)), null, cmd);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('a GraphQL merge and xargs hide the head, so they are denied without a lookup', () => {
+  const calls = [];
+  for (const cmd of ["gh api graphql -f query='mutation { mergePullRequest(input: {}) { clientMutationId } }'",
+    'echo 5 | xargs gh pr merge']) {
+    assert.match(g.check(cmd, '.', stub(repo(), calls)), /cannot be checked/, cmd);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test('the record is read where the merge runs, after a cd', () => {
+  const calls = [];
+  const dir = repo([`${HEAD} x`]);
+  const exec = (exe, args, cwd) => { calls.push([exe, cwd]); return exe === 'git' ? dir : HEAD; };
+  const other = repo();
+  assert.equal(g.check(`cd ../${path.basename(other)} && gh pr merge 6`, path.join(os.tmpdir(), 'a'), exec), null);
+  assert.deepEqual(calls.map(c => c[1]), [other, other]);
+  calls.length = 0;
+  g.check('cd ./no-such-dir && gh pr merge 6', other, exec);  // a failed cd stays put
+  assert.deepEqual(calls.map(c => c[1]), [other, other]);
+});
+
+test('an inline assignment covers only its own command; export and $env: last', () => {
+  const dir = repo();
+  assert.match(g.check(`SHIP_REVIEWED=${HEAD} true; gh pr merge 5`, '.', stub(dir)), /waits for a code review/);
+  assert.equal(g.check(`export SHIP_REVIEWED=${HEAD}; gh pr merge 5`, '.', stub(dir)), null);
+  assert.equal(g.check(`$env:SHIP_REVIEWED = '${HEAD}'; gh pr merge 5`, '.', stub(dir), true), null);
+});
+
 test('a failed head lookup is denied with a reason', () => {
   const failing = (exe) => { if (exe === 'gh') throw new Error('not logged in'); return '.'; };
   assert.match(g.check('gh pr merge 1', '.', failing), /not logged in/);

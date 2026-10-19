@@ -11,7 +11,7 @@
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/merge-guard.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/merge-guard.js\" codex",
             "timeout": 30
           }
         ]
