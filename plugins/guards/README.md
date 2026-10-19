@@ -13,6 +13,7 @@ A `PreToolUse` (Bash) hook that denies commands which change more than the agent
 | `git add -A`, `--all`, `.`, `:/` | stage the paths you created or changed by name | an agent committed files it did not create: the user's work in progress and other sessions' changes |
 | `git commit -a`, `--all`, `-am …` | same, then `git commit` without `-a` | `-a` commits every tracked change, not only the agent's |
 | `chezmoi apply --force` with no target | `chezmoi diff <target>`, then `chezmoi apply --force <target>`, per drifted target | a whole-tree force apply overwrote local edits nobody had reviewed |
+| `gh pr merge` (`--auto` too), `gh api …/pulls/<n>/merge`, `glab mr merge`, `glab api …/merge_requests/<n>/merge`, when the head they merge has no review on record | run the `code-review` skill on that head; or, when the user confirmed it was reviewed another way, prefix `SHIP_REVIEWED=<sha>` | agents merged pull requests whose final commits nobody had reviewed |
 | any `\\` in the command, Claude Code on Windows only | write the program or text to a file with the Write tool, run it by path | the Bash tool turns `\\` into `\` before bash runs the command, inside single quotes and quoted heredocs too |
 
 Passes: `git add <paths>`, `git add -p`, `git commit -m …`, `chezmoi apply` (it prompts on drift), `chezmoi apply --force <target>`, and `chezmoi apply --force --dry-run`.
@@ -32,4 +33,7 @@ claude plugin install guards@enderwolf50
 
 ```
 bash plugins/guards/tests/bash-guard.sh
+node --test plugins/guards/tests/merge-guard.test.js
 ```
+
+The merge rule (`scripts/merge-guard.js`, Node) looks the head SHA up with `gh pr view` / `glab mr view` (or the API for an API merge), so it needs those CLIs logged in; a failed lookup is denied with its error. The record is `$(git rev-parse --git-common-dir)/reviewed-heads`, one `<sha> <date> <who>` per line, shared by every worktree and never committed.

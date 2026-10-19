@@ -1,5 +1,5 @@
 {
-  "description": "Deny whole-tree git staging (git add -A/., git commit -a) chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve, naming the narrower command",
+  "description": "Deny whole-tree git staging (git add -A/., git commit -a) chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve, naming the narrower command; a PR merge waits for a code review of the exact head it merges",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,11 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/bash-guard.sh\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/merge-guard.js\"",
+            "timeout": 30
           }
         ]
       }
