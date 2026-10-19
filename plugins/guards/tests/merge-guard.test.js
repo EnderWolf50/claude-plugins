@@ -193,4 +193,9 @@ test('GraphQL input is decoded, comments and strings are data, and literal paren
   assert.equal(g.check('gh api graphql -F query=@read.graphql', dir, stub(dir)), null);
   assert.equal(g.check(`gh api graphql -f query='${query}'`, dir, stub(dir)), null);
   assert.equal(g.check(`NOTE='release (reviewed)' SHIP_REVIEWED=${HEAD} gh pr merge 5`, dir, stub(dir)), null);
+  for (const field of ['mergePullRequest', 'enablePullRequestAutoMerge']) {
+    for (const gap of [',', ', # ignored comment\n,', '\uFEFF,']) {
+      assert.match(g.check(`gh api graphql -f query='mutation { ${field}${gap}(input:{}) { clientMutationId } }'`, dir, stub(dir)), /cannot be checked/);
+    }
+  }
 });

@@ -25,7 +25,7 @@ const SHELL_SCRIPT_FLAG = /^(-[a-z]*c|-command|\/c)$/i;
 const EVALS = /^(eval|iex|invoke-expression)$/i;
 const CD = /^(cd|pushd|set-location|sl|chdir)$/i;
 const CONTROL = /^(then|do|else|\{)$/;
-const GRAPHQL_MERGE = /\b(?:mergePullRequest|enablePullRequestAutoMerge)\s*\(/;
+const GRAPHQL_MERGE = /\b(?:mergePullRequest|enablePullRequestAutoMerge)[\s,\uFEFF]*\(/;
 const graphqlMerge = text => GRAPHQL_MERGE.test(text.replace(/"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|#[^\r\n]*/g, ' '));
 const MERGE_ENDPOINT = /(?:pulls|merge_requests)\/\d+\/merge\/?(?:\?.*)?$/;
 const DEADLINE = Date.now() + 25000;  // every lookup shares it, inside the hosts' 30 s hook timeout
