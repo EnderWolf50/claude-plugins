@@ -183,3 +183,14 @@ test('a failed head lookup is denied with a reason', () => {
   const failing = (exe) => { if (exe === 'gh') throw new Error('not logged in'); return '.'; };
   assert.match(g.check('gh pr merge 1', '.', failing), /not logged in/);
 });
+
+test('GraphQL input is decoded, comments and strings are data, and literal parentheses in env are safe', () => {
+  const dir = repo();
+  fs.writeFileSync(path.join(dir, 'escaped.json'), '{"query":"mutation { merge\\u0050ullRequest(input: {}) { clientMutationId } }"}');
+  assert.match(g.check('gh api graphql --input=escaped.json', dir, stub(dir)), /cannot be checked/);
+  const query = '# mergePullRequest(input: {})\nquery { node(id: "mergePullRequest(input: {})") { id } }';
+  fs.writeFileSync(path.join(dir, 'read.graphql'), query);
+  assert.equal(g.check('gh api graphql -F query=@read.graphql', dir, stub(dir)), null);
+  assert.equal(g.check(`gh api graphql -f query='${query}'`, dir, stub(dir)), null);
+  assert.equal(g.check(`NOTE='release (reviewed)' SHIP_REVIEWED=${HEAD} gh pr merge 5`, dir, stub(dir)), null);
+});

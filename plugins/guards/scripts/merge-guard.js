@@ -25,7 +25,8 @@ const SHELL_SCRIPT_FLAG = /^(-[a-z]*c|-command|\/c)$/i;
 const EVALS = /^(eval|iex|invoke-expression)$/i;
 const CD = /^(cd|pushd|set-location|sl|chdir)$/i;
 const CONTROL = /^(then|do|else|\{)$/;
-const GRAPHQL_MERGE = /mergePullRequest|enablePullRequestAutoMerge/;
+const GRAPHQL_MERGE = /\b(?:mergePullRequest|enablePullRequestAutoMerge)\s*\(/;
+const graphqlMerge = text => GRAPHQL_MERGE.test(text.replace(/"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|#[^\r\n]*/g, ' '));
 const MERGE_ENDPOINT = /(?:pulls|merge_requests)\/\d+\/merge\/?(?:\?.*)?$/;
 const DEADLINE = Date.now() + 25000;  // every lookup shares it, inside the hosts' 30 s hook timeout
 
@@ -144,22 +145,26 @@ function lookupOf(tool, sub, before, cwd) {
   }
   if (sub[0] !== 'api') return null;
   if (sub.includes('graphql')) {
-    if (sub.some(w => GRAPHQL_MERGE.test(w))) return 'it is a GraphQL merge';
+    if (sub.some(w => graphqlMerge(w))) return 'it is a GraphQL merge';
     // a query read from a file (`-F query=@q.graphql`, `--input q.json`) is a merge when the file holds one
     const files = [];
     for (let i = 1; i < sub.length; i++) {
       const w = sub[i];
       const field = w === '-F' || w === '--field' ? sub[++i]
         : /^(?:--field=|-F=?)(.+)$/.exec(w)?.[1];
-      if (field?.startsWith('query=@')) files.push(field.slice('query=@'.length));
-      if (w === '--input') files.push(sub[++i]);
-      else if (w.startsWith('--input=')) files.push(w.slice('--input='.length));
+      if (field?.startsWith('query=@')) files.push({ name: field.slice('query=@'.length), json: false });
+      if (w === '--input') files.push({ name: sub[++i], json: true });
+      else if (w.startsWith('--input=')) files.push({ name: w.slice('--input='.length), json: true });
     }
-    for (const f of files) {
+    for (const { name: f, json } of files) {
       if (!f || f === '-' || /[$`]/.test(f)) return 'its GraphQL query file cannot be resolved before execution';
       let text;
       try { text = fs.readFileSync(path.resolve(cwd, f), 'utf8'); } catch { return `its GraphQL query file ${f} cannot be read`; }
-      if (GRAPHQL_MERGE.test(text)) return 'it is a GraphQL merge';
+      if (json) {
+        try { text = JSON.parse(text).query; } catch { return 'its GraphQL input is not valid JSON'; }
+        if (typeof text !== 'string') return 'its GraphQL input has no query string';
+      }
+      if (graphqlMerge(text)) return 'it is a GraphQL merge';
     }
     return null;
   }
@@ -205,7 +210,7 @@ function merges(cmd, cwd, ps = false, inherited = {}) {
       const tool = exeName(words[k]);
       if (tool !== 'gh' && tool !== 'glab') continue;
       const lookup = lookupOf(tool, words.slice(k + 1), words.slice(0, k), cwd);
-      const dynamic = Object.entries(env).find(([, v]) => /[$`(]/.test(v));
+      const dynamic = Object.entries(env).find(([, v]) => /[$`]/.test(v));
       if (lookup) found.push({ lookup: dynamic ? `its ${dynamic[0]} assignment cannot be resolved before execution; use a literal value` : lookup,
         cwd, env, attested: env.SHIP_REVIEWED || null });
     }
