@@ -66,3 +66,4 @@ jobs:
       - if: runner.os == 'Windows'
         run: bash plugins/guards/tests/bash-guard.sh
         shell: bash
+      - run: node --test plugins/guards/tests/merge-guard.test.js
