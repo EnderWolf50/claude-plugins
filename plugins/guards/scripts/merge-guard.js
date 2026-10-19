@@ -1,12 +1,12 @@
 // PreToolUse (Bash, PowerShell): a merge waits for a code review of the exact head it merges.
 //
-// Checked: `gh pr merge` (with --auto too), `gh api -X PUT …/pulls/<n>/merge`, `glab mr merge`,
+// Checked: `gh pr merge` (with --auto too), `gh api -X PUT …/pulls/<n>/merge`, `glab mr merge` / `accept`,
 // `glab api --method PUT …/merge_requests/<n>/merge`, anywhere in a segment (after `command`, `sudo`, `then`, `{`,
 // …) and inside `bash -c "…"` / `pwsh -c "…"` / `eval` / `iex`. Each one's current head SHA is looked up with gh/glab,
 // and the merge passes when that SHA is recorded in `<git common dir>/reviewed-heads` (the code-review skill's
 // patch appends it once a review leaves nothing to fix), or when the command itself attests it:
 // `SHIP_REVIEWED=<sha> gh …`, or `$env:SHIP_REVIEWED='<sha>'; gh …` in PowerShell, for a review done another way
-// that the user confirmed. A GraphQL merge (or a query read from a file), `xargs` feeding the selector and a
+// that the user confirmed. A GraphQL merge (in the command or in the query file it reads), `xargs` feeding the selector and a
 // `gh alias set` that merges hide the head, so they are denied.
 // Anything else is denied with the head SHA and both ways forward. The user's own merges (web UI, their
 // terminal, `!` commands) never reach this hook. `node merge-guard.js codex` reads Codex's PowerShell on Windows.
@@ -25,6 +25,7 @@ const SHELL_SCRIPT_FLAG = /^(-[a-z]*c|-command|\/c)$/i;
 const EVALS = /^(eval|iex|invoke-expression)$/i;
 const CD = /^(cd|pushd|set-location|sl|chdir)$/i;
 const CONTROL = /^(then|do|else|\{)$/;
+const GRAPHQL_MERGE = /mergePullRequest|enablePullRequestAutoMerge/;
 const MERGE_ENDPOINT = /(?:pulls|merge_requests)\/\d+\/merge\/?(?:\?.*)?$/;
 const DEADLINE = Date.now() + 25000;  // every lookup shares it, inside the hosts' 30 s hook timeout
 
@@ -122,10 +123,10 @@ const viaJson = s => JSON.parse(s).sha;
 const viaText = s => s;
 
 /** How to read the head this merge would land: [exe, args, parse], or a reason it cannot be read. */
-function lookupOf(tool, sub, before) {
+function lookupOf(tool, sub, before, cwd) {
   let globalRepo = null;  // `gh -R o/r pr merge 5`
   while (sub[0] === '-R' || sub[0] === '--repo' || /^--repo=/.test(sub[0] || '')) {
-    globalRepo = sub[0].includes('=') ? sub[0].slice(7) : sub[1];
+    globalRepo = sub[0].includes('=') ? sub[0].slice('--repo='.length) : sub[1];
     sub = sub.slice(sub[0].includes('=') ? 1 : 2);
   }
   if (sub.includes('--help') || sub.includes('-h')) return null;
@@ -143,8 +144,24 @@ function lookupOf(tool, sub, before) {
   }
   if (sub[0] !== 'api') return null;
   if (sub.includes('graphql')) {
-    if (sub.some(w => /mergePullRequest|enablePullRequestAutoMerge/.test(w))) return 'it is a GraphQL merge';
-    return sub.some(w => /=@/.test(w)) || sub.includes('--input') ? 'its GraphQL query is read from a file' : null;
+    if (sub.some(w => GRAPHQL_MERGE.test(w))) return 'it is a GraphQL merge';
+    // a query read from a file (`-F query=@q.graphql`, `--input q.json`) is a merge when the file holds one
+    const files = [];
+    for (let i = 1; i < sub.length; i++) {
+      const w = sub[i];
+      const field = w === '-F' || w === '--field' ? sub[++i]
+        : /^(?:--field=|-F=?)(.+)$/.exec(w)?.[1];
+      if (field?.startsWith('query=@')) files.push(field.slice('query=@'.length));
+      if (w === '--input') files.push(sub[++i]);
+      else if (w.startsWith('--input=')) files.push(w.slice('--input='.length));
+    }
+    for (const f of files) {
+      if (!f || f === '-' || /[$`]/.test(f)) return 'its GraphQL query file cannot be resolved before execution';
+      let text;
+      try { text = fs.readFileSync(path.resolve(cwd, f), 'utf8'); } catch { return `its GraphQL query file ${f} cannot be read`; }
+      if (GRAPHQL_MERGE.test(text)) return 'it is a GraphQL merge';
+    }
+    return null;
   }
   const endpoint = sub.find(w => MERGE_ENDPOINT.test(w));
   const method = flagValue(sub, ['-X', '--method']) || (sub.find(w => /^-X./.test(w)) || '').slice(2);
@@ -187,8 +204,10 @@ function merges(cmd, cwd, ps = false, inherited = {}) {
     for (let k = 0; k < words.length; k++) {
       const tool = exeName(words[k]);
       if (tool !== 'gh' && tool !== 'glab') continue;
-      const lookup = lookupOf(tool, words.slice(k + 1), words.slice(0, k));
-      if (lookup) found.push({ lookup, cwd, env, attested: env.SHIP_REVIEWED || null });
+      const lookup = lookupOf(tool, words.slice(k + 1), words.slice(0, k), cwd);
+      const dynamic = Object.entries(env).find(([, v]) => /[$`(]/.test(v));
+      if (lookup) found.push({ lookup: dynamic ? `its ${dynamic[0]} assignment cannot be resolved before execution; use a literal value` : lookup,
+        cwd, env, attested: env.SHIP_REVIEWED || null });
     }
   }
   return found;

@@ -134,7 +134,7 @@ test('an inline assignment covers only its own command; export and $env: last', 
   assert.equal(g.check(`$env:SHIP_REVIEWED = '${HEAD}'; gh pr merge 5`, '.', stub(dir), true), null);
 });
 
-test('round 2: a global -R, -XPUT, mr accept, eval and iex still find the merge', () => {
+test('a global -R, -XPUT, mr accept, eval and iex are found; a merging query file and alias are denied; --help is not a merge', () => {
   const calls = [];
   const dir = repo();
   for (const cmd of ['gh -R o/r pr merge 16 --squash', 'gh --repo=o/r pr merge 16', 'gh api -XPUT repos/o/r/pulls/5/merge',
@@ -142,8 +142,22 @@ test('round 2: a global -R, -XPUT, mr accept, eval and iex still find the merge'
     assert.match(g.check(cmd, '.', stub(dir, calls)) || '', /waits for a code review/, cmd);
   }
   assert.deepEqual(calls[0].slice(0, 6), ['gh', 'pr', 'view', '16', '-R', 'o/r']);
-  for (const cmd of ['gh api graphql -F query=@q.graphql', 'gh alias set m "pr merge"']) {
-    assert.match(g.check(cmd, '.', stub(dir)), /cannot be checked/, cmd);
+  fs.writeFileSync(path.join(dir, 'm.graphql'), 'mutation { mergePullRequest(input: {}) { clientMutationId } }');
+  fs.writeFileSync(path.join(dir, 'q.graphql'), 'query { viewer { login } }');
+  fs.writeFileSync(path.join(dir, 'm.json'), JSON.stringify({ query: 'mutation { mergePullRequest(input: {}) { clientMutationId } }' }));
+  fs.writeFileSync(path.join(dir, 'q.json'), JSON.stringify({ query: 'query { viewer { login } }' }));
+  for (const cmd of ['gh api graphql -F query=@m.graphql', 'gh api graphql -F query=@missing.graphql',
+    'gh api graphql -Fquery=@m.graphql', 'gh api graphql --field=query=@m.graphql',
+    'gh api graphql --input m.json', 'gh api graphql --input=m.json', 'gh api graphql --input=-',
+    'gh api graphql -F query=@-',
+    'gh alias set m "pr merge"']) {
+    assert.match(g.check(cmd, dir, stub(dir)), /cannot be checked/, cmd);
+  }
+  for (const cmd of ['gh api graphql -F query=@q.graphql', 'gh api graphql -f query=@m.graphql',
+    'gh api graphql -Fquery=@q.graphql', 'gh api graphql --field=query=@q.graphql',
+    'gh api graphql --input q.json', 'gh api graphql --input=q.json',
+    'gh api graphql -f query=\'query { viewer { login } }\' -f b=@alice']) {
+    assert.equal(g.check(cmd, dir, stub(dir)), null, cmd);
   }
   assert.equal(g.check('gh pr merge --help', '.', stub(dir)), null);
 });
@@ -154,6 +168,9 @@ test('the command\'s own variables reach the lookup, and cd after a keyword or w
   const exec = (exe, args, cwd, env) => { seen.push([exe, cwd, env && env.GH_REPO]); return exe === 'git' ? other : HEAD; };
   g.check('GH_REPO=o/other gh pr merge 5', '.', exec);
   assert.equal(seen[0][2], 'o/other');
+  seen.length = 0;
+  assert.match(g.check('GH_REPO=$REPO gh pr merge 5', '.', exec), /GH_REPO assignment cannot be resolved/);
+  assert.equal(seen.length, 0);  // never look up a different repository by dropping the assignment
   seen.length = 0;
   g.check(`if true; then cd ${other.replace(/\\/g, '/')} && gh pr merge 6; fi`, '.', exec);
   assert.equal(seen[0][1], other);
