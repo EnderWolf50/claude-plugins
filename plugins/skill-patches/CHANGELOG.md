@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.0
+- **Breaking:** patches are global only. `$CLAUDE_PROJECT_DIR/.claude/skills` and `.agents/skills` (Claude Code) and the repository-root lookup (Codex) are no longer read. Move a project patch to `~/.claude/skills` or `~/.agents/skills`, written as a condition the agent checks (e.g. "in a public repo"), and keep project specifics in the project's own AGENTS.md.
+- New `writing-patches` skill teaches when to patch, the patch format and where it lives; the README points to it.
+
 ## 2.2.1
 - Codex MCP patch globs also match server names whose hyphens were normalized to underscores.
 

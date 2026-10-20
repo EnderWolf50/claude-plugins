@@ -5,12 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const event = JSON.parse(fs.readFileSync(0, 'utf8'));
 const home = process.env.SKILL_PATCHES_HOME || os.homedir();
-let root = path.resolve(event.cwd || process.cwd());
-while (!fs.existsSync(path.join(root, '.git')) && path.dirname(root) !== root) root = path.dirname(root);
-// Outside a repository, use the session directory rather than the filesystem root.
-if (!fs.existsSync(path.join(root, '.git'))) root = path.resolve(event.cwd || process.cwd());
 const dirs = [path.join(home, '.claude/skills'), path.join(home, '.agents/skills')];
-if (root !== path.resolve(home)) dirs.push(path.join(root, '.claude/skills'), path.join(root, '.agents/skills'));
 const session = crypto.createHash('sha256').update(String(event.session_id || '')).digest('hex');
 const marks = path.join(process.env.PLUGIN_DATA || os.tmpdir(), 'skill-patches-codex', session);
 if (event.hook_event_name === 'SessionStart') {
