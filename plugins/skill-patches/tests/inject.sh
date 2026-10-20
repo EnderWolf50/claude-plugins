@@ -14,7 +14,7 @@ patch() { # patch <skills dir> <skill> <body>
 }
 patch "$HOME/.claude/skills" tdd "When running tdd: GLOBAL"
 patch "$CLAUDE_PROJECT_DIR/.claude/skills" tdd "When running tdd: PROJECT"
-patch "$CLAUDE_PROJECT_DIR/.agents/skills" review "When running review: PROJECT-ONLY"
+patch "$CLAUDE_PROJECT_DIR/.agents/skills" review "When running review: PROJECT"
 patch "$HOME/.claude/skills" review "When running review: GLOBAL"
 patch "$CLAUDE_PROJECT_DIR/.agents/skills" onlyproj "When running onlyproj: PROJECT-ONLY"
 patch "$HOME/.agents/skills" reference "When running reference: AGENTS-GLOBAL"

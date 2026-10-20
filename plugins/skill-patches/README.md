@@ -5,7 +5,7 @@ Review its hooks in `/hooks`. The Codex adapter handles `$skill` mentions in sub
 concrete `SKILL.md` reads observed through shell calls, and `patch-tools` MCP globs. Global
 patches only; symlinks are deduplicated. Changed patch content reinjects,
 and compaction resets session marks. Implicit skill context with no observable file read still needs the global instruction fallback;
-Codex has no `Skill` or `UserPromptExpansion` event. No CC hook behavior is removed.
+Codex has no `Skill` or `UserPromptExpansion` event.
 
 Extend a skill you do not own (a plugin's, a shared repo's) without editing it. When skill `S` runs, this plugin injects your `S.patch` skill next to it, so your additions survive the skill's updates.
 
@@ -24,11 +24,11 @@ Patches are global only: a project's `.claude/skills` and `.agents/skills` are n
 
 ## Write a patch
 
-The plugin ships the `writing-patches` skill: when to patch rather than edit, the `S.patch/SKILL.md` format, where it lives and the 10,000-character context cap. Ask your agent to write a patch and it loads that skill; it is the single source for the how-to.
+The plugin ships the `writing-patches` skill (Claude Code; the Codex plugin carries hooks only): when to patch rather than edit, the `S.patch/SKILL.md` format, where it lives, `patch-tools:` and the context cap. Ask your agent to write a patch and it loads that skill; it is the single source for the how-to.
 
 ## Inject on a tool call
 
-An agent can use a skill's MCP tools without invoking the skill. A patch that names those tools in `patch-tools:` (space-separated globs matched against the tool name) is injected after the first matching call, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated until the session is compacted (`SessionStart`, `compact`, clears the marks, since the summary may drop the patch). Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
+A patch with `patch-tools:` (see `writing-patches`) is injected after the first matching MCP call, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated until the session is compacted (`SessionStart`, `compact`, clears the marks, since the summary may drop the patch). Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
 
 ## Install
 

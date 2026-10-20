@@ -9,7 +9,7 @@ The skill-patches plugin injects `<skill>.patch/SKILL.md` as context right after
 
 ## Patch or edit
 
-- Find the skill's owner: its source in `~/.agents/.skill-lock.json`, or the plugin that ships it.
+- Find the skill's owner: its source in `~/.agents/.skill-lock.json` when the `skills` CLI installed it, or the plugin that ships it.
 - Your own skill: edit it.
 - Someone else's skill (plugin, upstream repo): write a patch and leave its files as they are.
 - Look for an existing `<skill>.patch` in `~/.claude/skills` and `~/.agents/skills` first; extend it.
@@ -33,7 +33,7 @@ When running tdd:
 
 - `disable-model-invocation: true` and `user-invocable: false` keep the patch out of the skill list and the `/` menu; it arrives only through the hook.
 - Open the body with "When running `<skill>`:" and list steps: additions, or overrides of named steps of the skill. Give each step a completion criterion.
-- Keep the body short: a hook's context is capped at 10,000 characters.
+- Keep the body short: Claude Code caps a hook's context at 10,000 characters.
 
 ## Where it lives
 
@@ -48,4 +48,4 @@ To have the patch arrive when an agent uses the skill's MCP tools without invoki
 patch-tools: mcp__*tempad-dev__* mcp__other__read
 ```
 
-It is injected on the first matching call per session, once.
+It is injected once, on the first matching call, and again after the session is compacted. Only MCP tools (`mcp__*`) match.
