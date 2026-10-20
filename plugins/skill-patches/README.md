@@ -3,9 +3,8 @@
 Codex: add the `EnderWolf50/claude-plugins` marketplace and install `skill-patches@enderwolf50`.
 Review its hooks in `/hooks`. The Codex adapter handles `$skill` mentions in submitted prompts,
 concrete `SKILL.md` reads observed through shell calls, and `patch-tools` MCP globs. Global
-patches precede project patches; symlinks are deduplicated. Changed patch content reinjects,
-and compaction resets session marks. Nested working directories resolve to the repository root.
-Implicit skill context with no observable file read still needs the global instruction fallback;
+patches only; symlinks are deduplicated. Changed patch content reinjects,
+and compaction resets session marks. Implicit skill context with no observable file read still needs the global instruction fallback;
 Codex has no `Skill` or `UserPromptExpansion` event. No CC hook behavior is removed.
 
 Extend a skill you do not own (a plugin's, a shared repo's) without editing it. When skill `S` runs, this plugin injects your `S.patch` skill next to it, so your additions survive the skill's updates.
@@ -20,46 +19,16 @@ Lookup, in this order; every file found is injected:
 
 1. `~/.claude/skills/S.patch/SKILL.md`
 2. `~/.agents/skills/S.patch/SKILL.md`
-3. `$CLAUDE_PROJECT_DIR/.claude/skills/S.patch/SKILL.md`
-4. `$CLAUDE_PROJECT_DIR/.agents/skills/S.patch/SKILL.md`
 
-The context Claude gets is `Patch for skill S (overrides the skill where they conflict):` followed by each patch body, frontmatter stripped. Project patches come last, so they win over global ones. No patch: the hook prints nothing and exits 0. Needs `bash` and `jq`.
+Patches are global only: a project's `.claude/skills` and `.agents/skills` are not read. The context Claude gets is `Patch for skill S (overrides the skill where they conflict):` followed by each patch body, frontmatter stripped. No patch: the hook prints nothing and exits 0. Needs `bash` and `jq`.
 
 ## Write a patch
 
-Create `S.patch/SKILL.md` in one of the directories above, for example `~/.claude/skills/tdd.patch/SKILL.md`:
-
-```markdown
----
-name: tdd.patch
-description: Patch for tdd: run the project's test script, not the runner directly
-disable-model-invocation: true
-user-invocable: false
----
-
-When running tdd:
-- Run tests with `pnpm test -- <file>`, not `vitest` directly.
-- After the last green step, run `pnpm lint` and fix what it reports.
-```
-
-- `disable-model-invocation: true` and `user-invocable: false` keep the patch out of the skill listing and the `/` menu; it only ever arrives through this hook.
-- Write the body as "When running S:" steps: additions, or overrides of named steps of S. Claude reads it after the skill, labelled as an override.
-- Keep it short: Claude Code caps a hook's context at 10,000 characters.
+The plugin ships the `writing-patches` skill: when to patch rather than edit, the `S.patch/SKILL.md` format, where it lives and the 10,000-character context cap. Ask your agent to write a patch and it loads that skill; it is the single source for the how-to.
 
 ## Inject on a tool call
 
-An agent can use a skill's MCP tools without invoking the skill. To have the patch arrive anyway, name those tools in its frontmatter with `patch-tools:`, space-separated globs matched against the tool name:
-
-```markdown
----
-name: figma-design-to-code.patch
-patch-tools: mcp__*tempad-dev__*
-disable-model-invocation: true
-user-invocable: false
----
-```
-
-On the first matching call in a session the patch is injected after the tool's result, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated until the session is compacted (`SessionStart`, `compact`, clears the marks, since the summary may drop the patch). Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
+An agent can use a skill's MCP tools without invoking the skill. A patch that names those tools in `patch-tools:` (space-separated globs matched against the tool name) is injected after the first matching call, headed `Patch for skill S, injected on the first <tool> call`. Once per session: a patch already injected, through its skill or an earlier tool call, is not repeated until the session is compacted (`SessionStart`, `compact`, clears the marks, since the summary may drop the patch). Only MCP tools (`mcp__*`) are matched; the session marks live under `$TMPDIR/skill-patches/<session_id>/`.
 
 ## Install
 

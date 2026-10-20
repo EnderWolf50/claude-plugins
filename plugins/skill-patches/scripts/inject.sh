@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PostToolUse and UserPromptExpansion hook: when skill S runs, inject every S.patch/SKILL.md
-# (frontmatter stripped) as additionalContext. Global patches first, project patches last.
+# (frontmatter stripped) as additionalContext. Global patches only: ~/.claude/skills, ~/.agents/skills.
 #   Skill tool (model-invoked): tool_input.skill
 #   UserPromptExpansion (user typed /S): command_name
 #   any other tool (hooks.json matches MCP tools): every patch whose frontmatter `patch-tools:` glob
@@ -29,9 +29,6 @@ if [ "$event" = SessionStart ]; then
 fi
 
 dirs=("$HOME/.claude/skills" "$HOME/.agents/skills")
-if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ "$CLAUDE_PROJECT_DIR" != "$HOME" ]; then
-  dirs+=("$CLAUDE_PROJECT_DIR/.claude/skills" "$CLAUDE_PROJECT_DIR/.agents/skills")
-fi
 
 # collect <name>: every <name>.patch body into $body
 collect() {

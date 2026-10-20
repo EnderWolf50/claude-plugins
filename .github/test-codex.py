@@ -140,7 +140,8 @@ class Hooks(unittest.TestCase):
             event = {'hook_event_name': 'UserPromptSubmit', 'session_id': 'one', 'cwd': str(nested), 'prompt': '$tdd build this'}
             run = lambda e: invoke('plugins/skill-patches/scripts/codex.js', e, env)
             text = run(event)['hookSpecificOutput']['additionalContext']
-            self.assertLess(text.index('global override'), text.index('project override'))
+            self.assertIn('global override', text)
+            self.assertNotIn('project override', text)
             self.assertEqual(run(event), {})
             run({**event, 'hook_event_name': 'SessionStart', 'source': 'compact'})
             self.assertTrue(run(event))
