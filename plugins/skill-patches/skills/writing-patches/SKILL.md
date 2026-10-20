@@ -10,7 +10,7 @@ The skill-patches plugin injects `<skill>.patch/SKILL.md` as context right after
 ## Patch or edit
 
 - Find the skill's owner: its source in `~/.agents/.skill-lock.json` when the `skills` CLI installed it, or the plugin that ships it.
-- Your own skill: edit it.
+- Your own skill: edit it in its source repo. For the plugin author, that is a skill installed from EnderWolf50/skills (its lock source path names `EnderWolf50-skills`) or one of these plugins.
 - Someone else's skill (plugin, upstream repo): write a patch and leave its files as they are.
 - Look for an existing `<skill>.patch` in `~/.claude/skills` and `~/.agents/skills` first; extend it.
 
@@ -38,6 +38,7 @@ When running tdd:
 ## Where it lives
 
 - `~/.claude/skills/<skill>.patch/` or `~/.agents/skills/<skill>.patch/`. Patches are global only; a project repository holds none.
+- The plugin author's patches are sourced from `patches/<skill>.patch/` in EnderWolf50/skills, with the name added to the EnderWolf50/skills list of chezmoi `.chezmoidata/skills.toml` (a dotfiles PR) so it installs into `~/.agents/skills`; that repo's AGENTS.md covers the resync after merge. Done: the patch is in a PR there and its name in a dotfiles PR.
 - A rule that holds in some repos only becomes a condition the agent checks: "in a public repo, ...", "when the repo's AGENTS.md says ...". The project keeps its specifics in its own AGENTS.md or docs.
 
 ## Inject on a tool call
