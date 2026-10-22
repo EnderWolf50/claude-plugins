@@ -8,11 +8,6 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/codex.js\"",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/merge-guard.js\" codex",
-            "timeout": 30
           }
         ]
       }

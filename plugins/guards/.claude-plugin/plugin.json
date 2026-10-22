@@ -1,7 +1,7 @@
 {
   "name": "guards",
-  "description": "Denies Bash commands that change more than the agent knows about, each with the narrower command to run instead: git add -A / --all / ., git commit -a, chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve. A PR merge (gh, glab, their APIs, auto-merge) waits for a code review recorded for the exact head it merges.",
-  "version": "1.3.0",
+  "description": "Denies Bash commands that change more than the agent knows about, each with the narrower command to run instead: git add -A / --all / ., git commit -a, chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve.",
+  "version": "2.0.0",
   "author": {
     "name": "EnderWolf50"
   },

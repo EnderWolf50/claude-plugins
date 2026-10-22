@@ -5,7 +5,6 @@ const { spawnSync } = require('node:child_process');
 const input = fs.readFileSync(0, 'utf8');
 const event = JSON.parse(input);
 const shell = event.tool_input?.shell || '';
-// merge-guard.js makes the same call for `node merge-guard.js codex`; change both together.
 const powershell = process.platform === 'win32' && !/bash|zsh|\/sh$/.test(shell);
 const env = { ...process.env, GUARDS_HOST: 'codex' };   // codex-guard.ps1 hands some commands to bash-guard.sh
 const result = powershell
