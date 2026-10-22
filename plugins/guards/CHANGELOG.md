@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+- Removed `scripts/merge-guard.js` and its tests: a PR merge no longer waits for a recorded code review. `SHIP_REVIEWED` and `reviewed-heads` are no longer read.
+
 ## 1.3.0
 - New `scripts/merge-guard.js`, a `PreToolUse` hook on the Bash and PowerShell tools for Claude Code and on Codex's shell: `gh pr merge` (with `--auto` too), `gh api -X PUT …/pulls/<n>/merge`, `glab mr merge` / `accept` and `glab api --method PUT …/merge_requests/<n>/merge`, wherever they sit in a segment, after a global `-R`, or inside `bash -c` / `pwsh -c` / `eval` / `iex`, look up the head they would merge and pass only when that SHA is in `<git common dir>/reviewed-heads` (the `code-review` skill's patch appends it once a review leaves nothing to fix) or the command attests it with `SHIP_REVIEWED=<sha>` (`$env:SHIP_REVIEWED='<sha>'` in PowerShell) after the user confirmed a review done another way. A record or attestation of an older head does not cover new commits. A GraphQL merge (in the command or in the query file it reads), `xargs` feeding the PR number and a `gh alias set` that merges hide the head and are denied. The lookup runs where the command does (after `cd` / `Set-Location`) with the command's own variables (`GH_REPO`). New `tests/merge-guard.test.js`, run in CI.
 
