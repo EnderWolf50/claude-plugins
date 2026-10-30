@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.0
+- New `scripts/powershell-guard.sh`, a `PreToolUse` hook on the PowerShell tool for Claude Code: denies a bash heredoc (`<<EOF`, `<<'EOF'`, `<<-EOF`) in a PowerShell command, pointing at a PowerShell here-string (closing `'@` at column 0) or a script file written with the Write tool. Quoted strings (also across lines), comments and here-string bodies are data. New `tests/powershell-guard.sh`, run in CI. The Codex adapter is unchanged.
+
 ## 2.0.0
 - Removed `scripts/merge-guard.js` and its tests: a PR merge no longer waits for a recorded code review. `SHIP_REVIEWED` and `reviewed-heads` are no longer read.
 

@@ -62,7 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - if: runner.os != 'Windows'
-        run: /bin/bash plugins/guards/tests/bash-guard.sh
+        run: /bin/bash plugins/guards/tests/bash-guard.sh && /bin/bash plugins/guards/tests/powershell-guard.sh
       - if: runner.os == 'Windows'
-        run: bash plugins/guards/tests/bash-guard.sh
+        run: bash plugins/guards/tests/bash-guard.sh && bash plugins/guards/tests/powershell-guard.sh
         shell: bash

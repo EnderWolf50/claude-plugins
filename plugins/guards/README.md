@@ -15,6 +15,8 @@ A `PreToolUse` hook on the Bash tool that denies commands which change more than
 | `chezmoi apply --force` with no target | `chezmoi diff <target>`, then `chezmoi apply --force <target>`, per drifted target | a whole-tree force apply overwrote local edits nobody had reviewed |
 | any `\\` in the command, Claude Code on Windows only | write the program or text to a file with the Write tool, run it by path | the Bash tool turns `\\` into `\` before bash runs the command, inside single quotes and quoted heredocs too |
 
+A second `PreToolUse` hook, on the PowerShell tool (Claude Code only), denies a bash heredoc (`<<EOF`, `<<'EOF'`, `<<-EOF`): PowerShell has no such syntax, so the command failed to parse or ran the body as commands. The reason points at a PowerShell here-string (`@'` ... `'@`, the closing `'@` at column 0) or a script file written with the Write tool. Quoted strings (also across lines), comments and here-string bodies are data.
+
 Passes: `git add <paths>`, `git add -p`, `git commit -m …`, `chezmoi apply` (it prompts on drift), `chezmoi apply --force <target>`, and `chezmoi apply --force --dry-run`.
 
 Every segment of a compound command (`&&`, `||`, `;`, `|`, `&`, subshells) is checked on its own, so `make && git add -A` is denied too. `git -C <dir>`, `git -c k=v` and other global options before the subcommand are skipped. For the git and chezmoi rules, quoted strings and heredoc bodies are data: `git commit -m "fix git add -A"` passes. The `\\` rule looks at the whole command, since the Bash tool halves it everywhere; it keys on `uname -s`, so a `bash` on PATH that reports `Linux` (WSL's `bash.exe`) skips it. Needs `bash` and `jq`.
@@ -32,4 +34,5 @@ claude plugin install guards@enderwolf50
 
 ```
 bash plugins/guards/tests/bash-guard.sh
+bash plugins/guards/tests/powershell-guard.sh
 ```
