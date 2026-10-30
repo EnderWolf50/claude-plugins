@@ -36,5 +36,20 @@ check allow "Write-Output 'a <<EOF b'"
 check allow "Write-Output \"a <<EOF b\""
 check allow "1 -shl 2"
 check allow "[int]2 -bor 1"
+# a delimiter that is not a plain word
+check deny  "cat <<'END-OF'${nl}x${nl}END-OF"
+# a string ending in @ is not a here-string opener
+check deny  "Write-Output \"mail@\"${nl}cat <<EOF${nl}x${nl}EOF"
+check deny  "\$x = 'user@'${nl}cat <<EOF${nl}x${nl}EOF"
+# the text after a here-string's closing line is code
+check deny  "\$s = @\"${nl}x${nl}\"@; cat <<EOF${nl}y${nl}EOF"
+check allow "\$s = @\"${nl}x${nl}\"@ | Set-Content f"
+# comments and strings spanning lines are data
+check allow "Get-Date # cat <<EOF"
+check allow "<# use <<EOF #> Get-Date"
+check allow "<#${nl}use <<EOF${nl}#>${nl}Get-Date"
+check allow "Write-Output \"Title${nl}${nl}Denies cat <<EOF here\""
+check allow "Write-Output \"it's\" '<<EOF'"
+check allow "Write-Output \"a \`\"<<EOF\" b\""
 
 exit $fail
