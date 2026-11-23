@@ -106,7 +106,7 @@ check deny  "pkill -f vite"
 check deny  "killall node"
 check deny  "sudo pkill -9 python"
 check deny  "make; pkill node || true"
-check deny  "/usr/bin/pkill node"
+check deny  "make; /usr/bin/pkill node"   # not leading: MSYS would rewrite a leading /usr/bin into C:/... for jq.exe
 check allow "taskkill /PID 1234 /F"
 check allow "taskkill //PID 1234 //T //F"
 check allow "kill 1234"
