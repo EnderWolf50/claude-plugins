@@ -1,0 +1,38 @@
+{
+  "_comment": "The one source of the guards' rule text. A denial is do + how + why; the session context lists the `do` of each rule in context.all (both hosts) and context.claudeWindows (Claude Code on Windows).",
+  "add": {
+    "do": "Stage the paths you created or changed by name: `git add <path>...`.",
+    "why": "`git add -A`, `--all` and `.` also stage files you did not touch: the user's work in progress, other sessions' changes, generated files."
+  },
+  "commit": {
+    "do": "Stage the paths you created or changed by name with `git add <path>...`, then run `git commit` without `-a`.",
+    "why": "`-a` also commits every tracked change you did not make."
+  },
+  "chezmoi": {
+    "do": "Give `chezmoi apply --force` a target: `chezmoi apply --force <target>`, one drifted target at a time.",
+    "how": "For each drifted target in `chezmoi status`, run `chezmoi diff <target>` first.",
+    "why": "`apply --force` with no target overwrites every drifted file, including local edits nobody has reviewed."
+  },
+  "kill": {
+    "do": "Stop a process by its PID: `kill <pid>`, `Stop-Process -Id <pid>` or `taskkill /PID <pid>`, after finding and checking the PID.",
+    "how": "Find it with `pgrep -af <pattern>` or, in PowerShell, `Get-CimInstance Win32_Process -Filter \"CommandLine LIKE '%<pattern>%'\" | Select-Object ProcessId, CommandLine`, and check that the command line is the process you mean.",
+    "why": "Killing by name (`taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name`) stops every process with that name, including the user's own and other sessions'."
+  },
+  "rewrite": {
+    "do": "On Windows, a Bash command containing `\\\\` is written to a file and run from there (`source <file>`), so its backslashes reach bash as typed."
+  },
+  "backslash": {
+    "do": "Write the program or text to a file with the Write tool, then run or pass it by path (`python <file>`, `bash <file>`, `--body-file <file>`).",
+    "why": "On Windows the Bash tool turns every `\\\\` in a command into `\\` before bash runs it, inside single quotes and quoted heredocs too, so this command would not run as written."
+  },
+  "heredoc": {
+    "do": "In the PowerShell tool, write a multi-line string as a here-string: `@'`, the text, then `'@` at column 0 on its own line.",
+    "how": "For a longer program, write it to a file with the Write tool and run it by path (`pwsh -NoProfile -File <file>`). To use a bash heredoc, send the command to the Bash tool instead.",
+    "why": "PowerShell has no bash heredoc (`<<EOF`, `<<'EOF'`), so this command would not run as written."
+  },
+  "context": {
+    "intro": "The guards plugin checks your shell commands. Work this way and none of its checks stop you:",
+    "all": ["commit", "chezmoi", "kill"],
+    "claudeWindows": ["rewrite", "heredoc"]
+  }
+}

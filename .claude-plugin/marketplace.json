@@ -73,8 +73,8 @@
     {
       "name": "guards",
       "source": "./plugins/guards",
-      "description": "Denies git add -A / git commit -a, chezmoi apply --force without a target and, on Windows, a doubled backslash the Bash tool would halve, naming the narrower command",
-      "version": "2.1.0",
+      "description": "Denies git add -A / git commit -a, chezmoi apply --force without a target and killing a process by name, naming the narrower command; on Windows runs a command with a doubled backslash from a file so the Bash tool cannot halve it; names the rules at session start",
+      "version": "2.2.0",
       "author": {
         "name": "EnderWolf50"
       },

@@ -98,12 +98,14 @@ class Hooks(unittest.TestCase):
 
     def test_guards(self):
         deny = ["git add -A", "git commit -am fix", "git add .", "chezmoi apply --force",
-                "git -C somewhere add --all", "echo ok; git add -A"]
+                "git -C somewhere add --all", "echo ok; git add -A", "pkill -f vite", "killall node"]
         allow = ['git add src/app.py', 'git commit -m "fix git add -A"',
                  'chezmoi apply --force ~/.codex/AGENTS.md', 'chezmoi apply --force --dry-run',
                  r"printf '%s' 'a\\b'"]
         if os.name == "nt":
             deny += ['& "C:\\Program Files\\Git\\cmd\\git.exe" add -A', 'if ($true) { git add . }']
+            deny += ['Stop-Process -Name node', 'spps -n node -Force', 'taskkill /IM node.exe /F']
+            allow += ['Stop-Process -Id 1234', 'taskkill /PID 1234 /F', "Write-Output 'Stop-Process -Name node'"]
             allow += ["$message = @'\ngit add -A\n'@\nWrite-Output $message"]
             allow += ['git commit --message "-a"', 'git commit --file message.txt']
             allow += ["cat <<EOF\na\\\\b\nEOF"]   # pwsh cannot parse it and hands it to bash-guard.sh
@@ -112,7 +114,19 @@ class Hooks(unittest.TestCase):
                 result = invoke('plugins/guards/scripts/codex.js', {
                     'hook_event_name': 'PreToolUse', 'tool_name': 'Bash', 'tool_input': {'command': command}})
                 self.assertEqual(bool(result), command in deny)
-                if result: self.assertEqual(result['hookSpecificOutput']['permissionDecision'], 'deny')
+                if result:
+                    self.assertEqual(result['hookSpecificOutput']['permissionDecision'], 'deny')
+                    self.assertGreater(len(result['hookSpecificOutput']['permissionDecisionReason']), 20)
+        rules = json.loads((ROOT / 'plugins/guards/scripts/rules.json').read_text(encoding='utf-8'))
+        for event in ['SessionStart', 'SubagentStart']:
+            with self.subTest(event=event):
+                result = invoke('plugins/guards/scripts/codex.js', {'hook_event_name': event, 'source': 'startup'})
+                self.assertEqual(result['hookSpecificOutput']['hookEventName'], event)
+                text = result['hookSpecificOutput']['additionalContext']
+                for key in rules['context']['all']:
+                    self.assertIn(rules[key]['do'], text)
+                self.assertNotIn(rules['rewrite']['do'], text)   # Codex does not halve backslashes
+                self.assertLess(len(text), 10000)
 
     def test_patches(self):
         with tempfile.TemporaryDirectory() as temporary:
