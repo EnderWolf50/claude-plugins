@@ -4,40 +4,30 @@
 #   git add -A / --all / . / :/       stage the paths you created or changed by name
 #   git commit -a / --all / -am ...   same, then commit without -a
 #   chezmoi apply --force (no target) diff and force-apply one drifted target at a time
-#   \\ anywhere, on Windows           write the program to a file and run it by path
+#   taskkill /IM, pkill, killall      find the PID, check it, kill by PID
+# and rewrites, Claude Code on Windows only:
+#   \\ anywhere                       run the command from a file that holds it as written
 # Each segment of a compound command (&&, ||, ;, |, &, subshells) is checked on its own;
-# for the git and chezmoi rules, heredoc bodies and quoted strings are data, never commands.
+# for the deny rules, heredoc bodies and quoted strings are data, never commands.
+# The rule text is in rules.json.
 
 set -u
 command -v jq >/dev/null 2>&1 || exit 0
+case "${BASH_SOURCE[0]}" in */*|*\\*) . "${BASH_SOURCE[0]%[/\\]*}/rules.sh" ;; *) . ./rules.sh ;; esac
 
-deny() {
-  jq -n --arg why "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $why
-    }
-  }'
-  exit 0
-}
-
-cmd="$(jq -r '.tool_input.command // empty' 2>/dev/null | tr -d '\r')"   # Windows jq writes CRLF
+input="$(cat)"
+cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null | tr -d '\r')"   # Windows jq writes CRLF
 
 # Claude Code's Bash tool on Windows turns every \\ into \ before bash sees the command, even
 # inside single quotes and a quoted heredoc. Codex is not known to, so codex.js sets GUARDS_HOST.
-# GUARDS_PLATFORM stands in for uname in tests.
-case "$cmd" in *'\\'*)
-  if [ "${GUARDS_HOST:-}" != codex ]; then
-    case "${GUARDS_PLATFORM:-$(uname -s)}" in MINGW*|MSYS*|CYGWIN*)
-      deny "Write the program or text to a file with the Write tool, then run or pass it by path (\`python <file>\`, \`bash <file>\`, \`--body-file <file>\`). On Windows the Bash tool turns every \\\\ in a command into \\ before bash runs it, inside single quotes and quoted heredocs too, so this command would not run as written." ;;
-    esac
-  fi ;;
-esac
+halved=""
+case "$cmd" in *'\\'*) [ "${GUARDS_HOST:-}" != codex ] && windows && halved=1 ;; esac
 
-case "$cmd" in *git*|*chezmoi*) ;; *) exit 0 ;; esac
+case "$cmd" in *git*|*chezmoi*|*[Kk][Ii][Ll][Ll]*) scan=1 ;; *) scan="" ;; esac
+[ -n "$scan$halved" ] || exit 0
 
-verdict="$(printf '%s\n' "$cmd" | awk '
+verdict=""
+[ -z "$scan" ] || verdict="$(printf '%s\n' "$cmd" | awk '
   inhd { t = $0; if (strip) sub(/^\t+/, "", t); if (t == delim) inhd = 0; next }
   {
     print
@@ -89,6 +79,10 @@ verdict="$(printf '%s\n' "$cmd" | awk '
     }
     return (sub_ == "apply" && force && !target) ? "chezmoi" : ""
   }
+  function taskkill(t, n,    i) {
+    for (i = 2; i <= n; i++) if (tolower(t[i]) ~ /^(\/\/?|-)im$/) return "kill"   # Git Bash writes /IM as //IM
+    return ""
+  }
   {
     s = $0
     gsub(/\047[^\047]*\047/, "\047\047", s)
@@ -102,18 +96,40 @@ verdict="$(printf '%s\n' "$cmd" | awk '
         for (i = 1; i < n; i++) t[i] = t[i + 1]; n--
       }
       if (n == 0) continue
-      v = ""
-      if (base(t[1]) == "git") v = git(t, n)
-      else if (base(t[1]) == "chezmoi") v = chezmoi(t, n)
+      v = ""; b = tolower(base(t[1])); sub(/\.exe$/, "", b)
+      if (b == "git") v = git(t, n)
+      else if (b == "chezmoi") v = chezmoi(t, n)
+      else if (b == "taskkill") v = taskkill(t, n)
+      else if (b == "pkill" || b == "killall") v = "kill"
       if (v != "") { print v; exit }
     }
   }')"
 
-case "$verdict" in
-  add)     why="Stage the paths you created or changed by name: \`git add <path>...\`. \`git add -A\`, \`--all\` and \`.\` also stage files you did not touch: the user's work in progress, other sessions' changes, generated files." ;;
-  commit)  why="Stage the paths you created or changed by name with \`git add <path>...\`, then run \`git commit\` without \`-a\`. \`-a\` also commits every tracked change you did not make." ;;
-  chezmoi) why="Force-apply one target at a time: for each drifted target in \`chezmoi status\`, run \`chezmoi diff <target>\`, then \`chezmoi apply --force <target>\`. \`apply --force\` with no target overwrites every drifted file, including local edits nobody has reviewed." ;;
-  *)       exit 0 ;;
-esac
+[ -n "$verdict" ] && deny "$(rule "$verdict")"
+[ -n "$halved" ] || exit 0
 
-deny "$why"
+# The hook gets the command before the Bash tool halves it, so the file holds it byte for byte.
+# The tool then runs `source <file>`: no backslash left in the command to halve, and the file runs
+# in the tool's own shell, from the same directory, so a cd in it carries to the next command as
+# the command's own would. Anything that fails on the way falls back to the denial.
+dir="${TMPDIR:-/tmp}/claude-guards"
+mkdir -p "$dir" 2>/dev/null || deny "$(rule backslash)"
+find=/usr/bin/find; [ -x "$find" ] || find=find   # not Windows' find.exe from PATH
+"$find" "$dir" -type f -name 'cmd.*' -mmin +1440 -delete 2>/dev/null   # a day's files are kept
+file="$(mktemp "$dir/cmd.XXXXXX" 2>/dev/null)" || deny "$(rule backslash)"
+if jq -b -n 1 >/dev/null 2>&1; then
+  printf '%s' "$input" | jq -bj '.tool_input.command' > "$file" || deny "$(rule backslash)"   # -b: no CRLF on Windows
+else
+  printf '%s' "$input" | jq -j '.tool_input.command' | tr -d '\r' > "$file" || deny "$(rule backslash)"
+fi
+printf '\n' >> "$file"
+path="$(cygpath -m "$file" 2>/dev/null)" || path="$file"   # C:/... reads the same in every shell
+case "$path" in *"'"*|*'\'*) deny "$(rule backslash)" ;; esac
+
+printf '%s' "$input" | jq --arg c "source '$path'" --arg why "$(rule rewrite)" '{
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    updatedInput: (.tool_input + {command: $c}),
+    additionalContext: ("guards: " + $why + " This command is in `" + ($c | ltrimstr("source ")) + "`.")
+  }
+}'

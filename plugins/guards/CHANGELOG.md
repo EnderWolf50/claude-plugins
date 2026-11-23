@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0
+- New `scripts/session-context.sh`, a `SessionStart` (`startup|resume|clear|compact`) and `SubagentStart` hook for Claude Code: adds one positive line per rule to the agent's context, so the first command already follows them. Codex gets the same lines from `codex.js` on its `SessionStart` and `SubagentStart`, without the two Claude Code–only Windows lines.
+- New deny rule, killing a process by name: `taskkill /IM` (also `//IM`, as Git Bash writes it, and `-IM`), `pkill` and `killall` in the Bash guard; `Stop-Process -Name` / `-ProcessName` (also abbreviated, `-Name:x`, and the `kill` and `spps` aliases), `taskkill /IM`, `pkill` and `killall` in the PowerShell guard and the Codex adapter. The reason points at finding the PID (`pgrep -af`, `Get-CimInstance Win32_Process` with a `CommandLine` filter), checking it, and killing by PID.
+- Claude Code on Windows: a Bash command containing `\\` is no longer denied. The hook writes it byte for byte to a file under `$TMPDIR/claude-guards/` and returns `updatedInput` with `source '<file>'`, so no backslash is left for the Bash tool to halve and a `cd` in the command still moves the tool's shell. The permission decision stays with the normal flow. A deny rule in the same command still wins; if the file cannot be written, the old denial stands. Files older than a day are removed. Codex is unchanged (`GUARDS_HOST=codex`).
+- The rule text moved to `scripts/rules.json`, the one source for the denials of every guard (Bash, PowerShell, Codex) and the session context. The Codex adapter's denials now use the same, longer text as Claude Code's.
+
 ## 2.1.0
 - New `scripts/powershell-guard.sh`, a `PreToolUse` hook on the PowerShell tool for Claude Code: denies a bash heredoc (`<<EOF`, `<<'EOF'`, `<<-EOF`) in a PowerShell command, pointing at a PowerShell here-string (closing `'@` at column 0) or a script file written with the Write tool. Quoted strings (also across lines), comments and here-string bodies are data. New `tests/powershell-guard.sh`, run in CI. The Codex adapter is unchanged.
 

@@ -1,6 +1,29 @@
 {
-  "description": "Deny whole-tree git staging (git add -A/., git commit -a) chezmoi apply --force without a target, and on Windows a doubled backslash the Bash tool would halve, naming the narrower command",
+  "description": "Deny whole-tree git staging (git add -A/., git commit -a), chezmoi apply --force without a target and killing a process by name, naming the narrower command; on Windows run a command with a doubled backslash from a file; name the rules up front at session and subagent start",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

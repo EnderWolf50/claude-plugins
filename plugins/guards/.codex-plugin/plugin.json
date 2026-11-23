@@ -1,6 +1,6 @@
 {
   "name": "guards",
-  "version": "2.1.0",
-  "description": "Require explicit git staging and targeted chezmoi force applies.",
+  "version": "2.2.0",
+  "description": "Require explicit git staging, targeted chezmoi force applies and killing processes by PID.",
   "hooks": "./hooks/codex.json"
 }
